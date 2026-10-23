@@ -87,6 +87,26 @@ route, documented in `DECISIONS.md`: it perturbs the fixed solution by a time-in
 applies the implicit function theorem with a parameter, and uses regularity in trace form at the
 fixed base solution.
 
+## Roadmap
+
+**Theorem C (smooth dependence) is a goal of this project that is not yet done.** In the paper
+(`thm:C`) it says that, near a given solution `u`, the data-to-solution map is a `C^∞` map
+`𝒮 : {a ∈ H^{2pm} : ‖a - u₀‖ < δ} → 𝒫^m` into the parabolic Sobolev space, and `𝒮(a)` is the smooth
+solution for smooth `a`. It is not one of the pinned statements, and nothing proved here depends on
+it: Corollary C (sequential continuous dependence in `C^∞`), and hence the Mantegazza–Martinazzi
+theorem, are proved by a different route that needs only the implicit function theorem at the fixed
+base solution (see `blueprint/DECISIONS.md`). Formalizing `thm:C` itself needs:
+
+- the Sobolev space `H^{2pm}` of initial data, with an extension operator into `𝒫^m`;
+- the parametric version of the regularity argument, to see that `𝒮(a)` is smooth for smooth `a`.
+
+The parametric Nemytskii operator, the smooth-dependence input of the IFT, and the regularity
+machinery it builds on are already in the repository (`exists_nonlinOp_param_ball`,
+`regularity_of_time`), so the remaining work is a matter of assembly. Contributions are welcome.
+
+Other items marked `planned` or `partial` in [`blueprint/map.md`](blueprint/map.md) are
+intermediate lemmas whose statements are not pinned.
+
 **Trust boundary.** The result is only as good as the pinned definitions. These are
 `EquationData`, `IsParabolicSolution`, `LegendreAt`, `covJet` and the Fréchet-type convergence in
 the statement of C. `ShortTime/Sanity/` checks non-vacuity of the pinned definitions: the heat equation is a

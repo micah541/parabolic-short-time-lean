@@ -626,6 +626,8 @@ $\nabla^j\partial_t^i(u^{(k)}-u)$ then follows by induction on $i$ from the equa
 of $u$ lie in a compact subset of $\mathcal D$. Theorem~\ref{thm:C} itself, which involves the
 spaces $H^{2pm}$ and $\Pp^m$, is not among the trusted formal statements
 (Section~\ref{sec:formal}); it is used in the proof of Corollary~\ref{cor:C}.
+It is a goal of the formalization that has not yet been carried out; the Lean proof of
+Corollary~\ref{cor:C} avoids it (see \texttt{blueprint/DECISIONS.md}).
 
 \begin{corollary}[maximal solutions]\label{cor:maximal}
 \lean{ShortTime.exists_maximal_solution, ShortTime.EquationData.isParabolicSolution_of_le}
