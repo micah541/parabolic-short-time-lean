@@ -89,8 +89,10 @@ fixed base solution.
 
 **Trust boundary.** The result is only as good as the pinned definitions. These are
 `EquationData`, `IsParabolicSolution`, `LegendreAt`, `covJet` and the Fréchet-type convergence in
-the statement of C. `ShortTime/Sanity/` shows each is non-vacuous (the heat equation and the
-polyharmonic equation satisfy them).
+the statement of C. `ShortTime/Sanity/` checks non-vacuity of the pinned definitions: the heat equation is a
+parabolic equation with a solution, and the Legendre condition holds for the polyharmonic principal
+part in every order. The hypotheses of `MMData` (and so of the MM theorem) have not been exhibited on
+a concrete example in Lean.
 
 | Layer | Content | Paper |
 |---|---|---|

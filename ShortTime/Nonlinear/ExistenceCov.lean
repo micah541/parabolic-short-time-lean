@@ -4,8 +4,8 @@ import ShortTime.Nonlinear.ExistenceAssembly
 # Theorem A on covariant bundles
 
 `EquationData.exists_solution_cov` is Theorem A for `T⁰_s M`. It is assembled from
-`prop:existence` and `prop:regularity` in `ExistenceAssembly.lean`; the regularity statement
-`parabolicSpace_solution_smooth` is still `sorry`. Theorem A for `T^r_s M`
+`prop:existence` and `prop:regularity` in `ExistenceAssembly.lean` (the regularity statement is
+`parabolicSpace_solution_smooth`, proved in `Regularity.lean`). Theorem A for `T^r_s M`
 follows by lowering indices (`exists_solution_of_covariant`, `Raising.lean`).
 -/
 

@@ -1,0 +1,13 @@
+ShortTime: a Lean 4 formalization of short-time existence for higher-order parabolic equations.
+
+This project depends on the Lean library DifferentialGeometry
+(https://github.com/qinz1yang/differential-geometry, v0.1.3), Copyright 2026 The
+DifferentialGeometry contributors, licensed under the Apache License 2.0.
+
+ShortTime/Vendor/ParametricJets.lean contains verbatim copies of parts of that library
+(Analysis/Spectral/Tensor/CovGrad/Parametric/{ChartRepresentation, JointSmoothness, JetBounds}.lean
+and the lemmas joint_rs_add, joint_rs_sub of Parametric/JetIntegral.lean). Modifications: the
+declarations were moved to the namespace ShortTime.Vendor and two unused imports were removed.
+These parts remain under the Apache License 2.0.
+
+The library itself builds on Mathlib (Apache License 2.0).
