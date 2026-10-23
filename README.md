@@ -111,8 +111,9 @@ intermediate lemmas whose statements are not pinned.
 `EquationData`, `IsParabolicSolution`, `LegendreAt`, `covJet` and the Fréchet-type convergence in
 the statement of C. `ShortTime/Sanity/` checks non-vacuity of the pinned definitions: the heat equation is a
 parabolic equation with a solution, and the Legendre condition holds for the polyharmonic principal
-part in every order. The hypotheses of `MMData` (and so of the MM theorem) have not been exhibited on
-a concrete example in Lean.
+part in every order. The hypotheses of the MM theorem are satisfiable: `MMData.polyharmonic` (`ShortTime/Sanity/MMInstance.lean`)
+is the polyharmonic flow with `E_ℓ = g⁻¹`, and `polyharmonic_short_time` is the MM theorem instantiated
+there. (Not checked in Lean: that its right side agrees with the textbook formula for `(-Δ)^p`.)
 
 | Layer | Content | Paper |
 |---|---|---|

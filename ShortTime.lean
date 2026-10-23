@@ -64,3 +64,5 @@ import ShortTime.Sanity.LegendreProduct
 import ShortTime.Nonlinear.RicciJetOps
 import ShortTime.Nonlinear.RicciJetPerm
 import ShortTime.Nonlinear.RicciJetSmooth
+import ShortTime.Sanity.InvMetricSmooth
+import ShortTime.Sanity.MMInstance
