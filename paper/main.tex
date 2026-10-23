@@ -1,0 +1,2063 @@
+\documentclass[11pt,reqno]{amsart}
+\usepackage[margin=1.15in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=green!40!black,urlcolor=blue!50!black]{hyperref}
+
+% ---------------------------------------------------------------------------
+% Theorem environments
+% ---------------------------------------------------------------------------
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{fact}[theorem]{Fact}
+\newtheorem{mainthm}{Theorem}
+\renewcommand{\themainthm}{\Alph{mainthm}}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% ---------------------------------------------------------------------------
+% Macros
+% ---------------------------------------------------------------------------
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Pp}{\mathcal{P}}
+\newcommand{\Dom}{\mathcal{D}}
+\newcommand{\Par}{\mathcal{O}}
+\newcommand{\Lcl}{\mathcal{L}}
+\newcommand{\Jet}{\mathrm{J}}
+\newcommand{\Diff}{\operatorname{Diff}}
+\newcommand{\Hom}{\operatorname{Hom}}
+\newcommand{\End}{\operatorname{End}}
+\newcommand{\tr}{\operatorname{tr}}
+\newcommand{\id}{\mathrm{id}}
+\newcommand{\dmu}{\,d\mu}
+\newcommand{\ip}[2]{\langle #1,#2\rangle}
+\newcommand{\norm}[1]{\lVert #1\rVert}
+\newcommand{\abs}[1]{\lvert #1\rvert}
+\newcommand{\Lap}{\nabla^{*}\nabla}
+\newcommand{\hatP}{\widehat{P}}
+\newcommand{\todo}[1]{\textcolor{red!70!black}{[#1]}}
+
+% ---------------------------------------------------------------------------
+% Blueprint annotations (leanblueprint-compatible). They are invisible in the
+% PDF; scripts/blueprint.py reads them to build blueprint/map.md.
+%   \lean{Decl1, Decl2}  Lean declaration(s) formalizing this item
+%   \uses{label1, ...}   items this statement / proof depends on
+%   \source{text}        where an imported Fact comes from
+% ---------------------------------------------------------------------------
+\newcommand{\lean}[1]{}
+\newcommand{\uses}[1]{}
+\newcommand{\leanok}{}
+\newcommand{\source}[1]{}
+
+\numberwithin{equation}{section}
+
+\title[Short-time existence for higher-order parabolic systems]{Short-time existence, uniqueness and smooth dependence for nonlinear parabolic equations of arbitrary even order on vector bundles}
+\author{[Authors]}
+\date{Working draft, \today}
+
+\begin{document}
+
+\begin{abstract}
+We prove that a fully nonlinear evolution equation
+$\partial_t u = F(t,u,\nabla u,\dots,\nabla^{2p}u)$
+for sections of a vector bundle over a closed Riemannian manifold has, for every smooth
+initial datum at which the equation is parabolic, a unique smooth solution for a short time, and
+that this solution depends smoothly on the initial datum. Parabolicity is expressed by a pointwise
+algebraic \emph{Legendre condition} on the linearization. It covers the quasilinear equations of
+product type treated by Mantegazza and Martinazzi, polyharmonic flows of every order, the
+Ricci--DeTurck flow and parabolic Monge--Amp\`ere equations.
+
+The proof is self-contained modulo standard facts about Sobolev spaces on closed manifolds, and it
+is organized with a machine formalization in mind:
+\begin{itemize}[nosep]
+\item all function spaces have integer order;
+\item no trace, interpolation or fractional spaces occur;
+\item linear theory is needed only for operators with smooth coefficients;
+\item regularity of solutions follows from the implicit function theorem via Angenent's parameter
+  trick, not from tame estimates.
+\end{itemize}
+\end{abstract}
+
+\maketitle
+
+\noindent\emph{Status.} This is a working draft intended to serve as the mathematical blueprint of a
+Lean formalization. Results labelled ``Fact'' are standard and are imported rather than proved here;
+Section~\ref{sec:formal} lists them together with the dependency structure of the argument.
+Places where the draft still needs checking are marked \todo{like this}.
+
+\tableofcontents
+
+% ===========================================================================
+\section{Introduction}\label{sec:intro}
+% ===========================================================================
+
+Let $(M,g)$ be a closed Riemannian manifold and $V\to M$ a vector bundle equipped with a fibre metric
+and a compatible connection. We study evolution equations
+\begin{equation}\label{eq:intro}
+  \partial_t u = F\bigl(t,u,\nabla u,\dots,\nabla^{2p}u\bigr),\qquad u(\cdot,0)=u_0,
+\end{equation}
+for time-dependent sections $u$ of $V$, where $p\ge 1$ and $F$ is smooth. Equations of this form
+occur throughout geometric analysis:
+\begin{itemize}[nosep]
+\item order two ($p=1$): the harmonic map heat flow and the Ricci--DeTurck flow;
+\item order four: Willmore-type flows, Calabi-type flows, the $Q$-curvature flow and the biharmonic
+  map heat flow;
+\item arbitrary even order: polyharmonic flows.
+\end{itemize}
+Almost every study of such a flow starts from the same statement: for a smooth initial datum at which
+the equation is parabolic there is a unique smooth solution for a short time, and it depends
+continuously on the datum. That statement is almost always justified by an appeal to ``standard
+parabolic theory''.
+
+For second-order equations and systems there is a large literature behind this appeal, for instance
+\cite{Hamilton75,Eidelman,Solonnikov,Amann,Lunardi,Baker}. It is usually set in Euclidean domains, in
+H\"older spaces or in an abstract semigroup framework, and the statement on a closed manifold has to be
+extracted from it. For higher-order equations the situation is thinner.
+\begin{itemize}[nosep]
+\item Polden \cite{Polden} proposed a proof based on linear theory in parabolic Sobolev spaces and on
+  the inverse function theorem.
+\item Sharples \cite{Sharples} pointed out a gap in the convergence of the frozen-coefficient linear
+  problems used there.
+\item Mantegazza and Martinazzi \cite{MM} closed the gap for scalar quasilinear equations whose
+  leading coefficient has the product form $E_1\otimes\cdots\otimes E_p$, with Polden's linear theory
+  used as a black box. They also remarked that systems can be treated in the same way.
+\end{itemize}
+
+The purpose of this paper is to give one self-contained statement and proof that covers all of the
+following at once:
+\begin{itemize}[nosep]
+\item equations of any even order $2p$;
+\item sections of an arbitrary vector bundle with metric and compatible connection;
+\item fully nonlinear dependence on all derivatives up to order $2p$;
+\item parabolicity assumed only along the initial datum;
+\item uniqueness, and smooth dependence on the initial datum.
+\end{itemize}
+
+\subsection{The main result}
+
+In the informal statement below, $P_{u_0}=\partial F/\partial(\nabla^{2p}u)$ denotes the coefficient
+of the top-order derivative in the linearization of $F$ at the initial datum.
+
+\begin{theorem}[informal version of Theorems~\ref{thm:A}--\ref{thm:C}]\label{thm:informal}
+Suppose that at every point of $M$ the coefficient $P_{u_0}$ satisfies the Legendre condition of
+Definition~\ref{def:legendre}. Then:
+\begin{enumerate}[nosep]
+\item equation~\eqref{eq:intro} has a smooth solution on $M\times[0,T]$ for some $T>0$;
+\item two smooth solutions along which the equation stays parabolic coincide;
+\item the solution depends smoothly on $u_0$.
+\end{enumerate}
+\end{theorem}
+
+The Legendre condition asks that the quadratic form
+$\xi\mapsto(-1)^{p+1}\sum_{I,J}\ip{\xi_I}{P^{IJ}\xi_J}$ be positive definite on $V$-valued
+$p$-tensors $\xi$. It is the higher-order analogue of the Legendre condition of the calculus of
+variations.
+\begin{itemize}[nosep]
+\item It holds for $-(\Lap)^p$, and for every leading coefficient of product form, in particular for
+  the class treated in \cite{MM} (Lemma~\ref{lem:legendre-examples}).
+\item It is stable under the usual rearrangements of covariant derivatives
+  (Remark~\ref{rem:rewrite}).
+\item It is strictly stronger than Petrovskii's strong parabolicity in general, but equivalent to it
+  for scalar second-order equations and in several other cases (Remark~\ref{rem:sos}).
+\end{itemize}
+
+\subsection{Strategy}
+
+We keep the central idea of \cite{MM}. The nonlinear operator is a $C^1$ map between parabolic Sobolev
+spaces; we linearize it at a smooth \emph{approximate} solution and apply the inverse function theorem.
+Around this core we make five changes. Each one either widens the scope or removes a technical
+ingredient.
+
+\begin{enumerate}[label=(\arabic*)]
+\item \emph{Approximate solutions from the formal power series.} We use the Taylor polynomial in $t$
+  of the formal power series solution (Lemma~\ref{lem:formal}), rather than the solution of an
+  auxiliary linear problem. This construction works verbatim for fully nonlinear equations.
+\item \emph{No trace spaces.} The unknown is sought in the space $\Pp^m_0$ of functions vanishing at
+  $t=0$, as a perturbation of the approximate solution. The error of the approximate solution is cut
+  off near $t=0$ by a smooth cutoff (Lemma~\ref{lem:cutoff}). The sharp trace space of the parabolic
+  Sobolev space never appears.
+\item \emph{Linear theory proved, not quoted.} We obtain energy estimates at every integer level by
+  differentiating the equation. Differentiation moves the problem from $V$ to $T^*M\otimes V$, which is
+  why working with general bundles is natural even for scalar equations. The model operator
+  $-(\Lap)^p$ is inverted by eigenfunction expansion, and general operators are reached by the method
+  of continuity (Section~\ref{sec:linear}). Negative-order norms are defined by duality, and all
+  orders are integers.
+\item \emph{Regularity by Angenent's trick.} Pulling a solution back by the flows of horizontal lifts
+  of vector fields produces a family of equations depending smoothly on a parameter. The implicit
+  function theorem, applied at a smooth point, shows that the solution depends smoothly on the
+  parameter, and this dependence is exactly spatial regularity (Section~\ref{sec:regularity}; compare
+  \cite{Angenent90}). Consequently neither tame estimates nor linear theory with non-smooth
+  coefficients is ever needed.
+\item \emph{Uniqueness by linearization.} The difference of two solutions solves a linear equation
+  with smooth coefficients, and uniqueness follows from the basic energy estimate
+  (Section~\ref{sec:uniqueness}).
+\end{enumerate}
+
+\subsection{A proof designed to be formalized}
+
+This paper is written as the blueprint of a formalization in Lean~4, on top of Mathlib \cite{mathlib}
+and an existing library of differential geometry \cite{DGlib}. Several of the choices above were made
+for that reason.
+
+\begin{itemize}[nosep]
+\item Every function space has integer order and is defined through covariant derivatives and time
+  derivatives.
+\item There are no interpolation spaces, trace theorems, Fourier multipliers or pseudodifferential
+  operators.
+\item Because the data are smooth, we may work in spaces of very high order and use only crude
+  embeddings.
+\item The linear theory is only ever applied to operators with smooth coefficients.
+\item The ellipticity hypothesis is a pointwise algebraic condition that can be checked directly.
+\item The final theorems are stated purely in terms of smooth sections, covariant derivatives and
+  time derivatives. The Sobolev machinery is internal to the proofs.
+\end{itemize}
+
+\subsection{What is not covered}
+
+The following are deliberately outside the scope of this paper.
+\begin{itemize}[nosep]
+\item Manifolds with boundary.
+\item Noncompact manifolds.
+\item Rough initial data and optimal regularity.
+\item Strongly parabolic operators that admit no Legendre representation (Remark~\ref{rem:sos}).
+\item Flows that are degenerate because of a gauge symmetry: the Ricci flow, the mean curvature and
+  Willmore flows of immersions, the Yang--Mills flow. Our theorems apply to these after gauge fixing
+  (for instance the Ricci--DeTurck flow, Section~\ref{ex:rdt}). The step that recovers the original
+  flow from the gauge-fixed one is not treated here; see Section~\ref{sec:scope}.
+\end{itemize}
+
+\subsection{Organization}
+
+\begin{itemize}[nosep]
+\item Section~\ref{sec:setting}: the setting, the Legendre condition and the main theorems.
+\item Section~\ref{sec:spaces}: the function spaces.
+\item Section~\ref{sec:linear}: linear theory.
+\item Section~\ref{sec:nonlinear}: the nonlinear theorems.
+\item Section~\ref{sec:examples}: examples.
+\item Section~\ref{sec:scope}: remarks on the scope.
+\item Section~\ref{sec:formal}: the dependency structure and the imported facts.
+\item Appendix~\ref{app:abstract}: the abstract tools.
+\end{itemize}
+
+% ===========================================================================
+\section{Setting and statements}\label{sec:setting}
+% ===========================================================================
+
+\subsection{Bundles and covariant derivatives}
+
+Throughout, $(M,g)$ is a closed Riemannian manifold, that is, compact and without boundary, of
+dimension $n\ge 1$, with Riemannian measure $\mu$.
+
+A \emph{Riemannian bundle} is a real vector bundle $W\to M$ with a fibre metric $\ip{\cdot}{\cdot}$ and
+a metric connection $\nabla$. The Levi-Civita connection of $g$ and the connection of $W$ induce metric
+connections on all bundles $\otimes^k T^*M\otimes W$. All of them are denoted by $\nabla$.
+
+\paragraph{Iterated derivatives} For $u\in\Gamma(W)$ we define
+$\nabla^k u\in\Gamma(\otimes^kT^*M\otimes W)$ inductively by $\nabla^0u=u$ and
+\[
+  (\nabla^k u)(X_1,\dots,X_k)=\bigl(\nabla_{X_1}(\nabla^{k-1}u)\bigr)(X_2,\dots,X_k).
+\]
+Thus the first slot records the derivative taken last, and $\nabla^k(\nabla^l u)=\nabla^{k+l}u$ as
+tensors.
+
+\paragraph{Frames and multi-indices} In a local orthonormal frame $(e_i)$ with dual coframe $(e^i)$, we
+write $T_{i_1\dots i_k}\in W_x$ for the components of a $W$-valued $k$-tensor. For a multi-index
+$I=(i_1,\dots,i_p)$ we write $e^I=e^{i_1}\otimes\cdots\otimes e^{i_p}$.
+
+\paragraph{Permutations} A permutation $\sigma\in S_k$ acts on $W$-valued $k$-tensors by
+$(\sigma T)(X_1,\dots,X_k)=T(X_{\sigma(1)},\dots,X_{\sigma(k)})$. This is a parallel bundle isometry.
+
+\paragraph{Integration} We write $\ip{u}{v}=\int_M\ip{u}{v}\dmu$ and $\norm{u}$ for the $L^2$ inner
+product and norm. The formal adjoint of $\nabla\colon\Gamma(W)\to\Gamma(T^*M\otimes W)$ is
+\[
+  \nabla^*\eta=-\sum_i(\nabla\eta)_{ii},
+\]
+where the derivative slot is contracted with the first slot of $\eta$. By the divergence theorem,
+$\ip{\nabla u}{\eta}=\ip{u}{\nabla^*\eta}$. The connection Laplacian is
+$\Lap u=-\sum_i(\nabla^2u)_{ii}$.
+
+\paragraph{Time-dependent sections} A time-dependent section on $[0,T]$ is a section of the pullback
+of $W$ to $M\times[0,T]$, and $C^\infty(M\times[0,T];W)$ denotes the smooth ones, smooth up to $t=0$
+and $t=T$. The operator $\nabla$ acts in the $M$-variables. Since $g$ and the connection do not depend
+on $t$, $\partial_t$ commutes with $\nabla$ and with all the bundle operations above.
+
+\paragraph{Differential operators} For Riemannian bundles $W,W'$ and $r\in\N$, the space
+$\Diff^r(W,W')$ consists of the operators
+\[
+  (Au)=\sum_{k=0}^{r}A_k(\nabla^k u),\qquad
+  A_k\in C^\infty\bigl(M\times[0,T];\Hom(\otimes^kT^*M\otimes W,W')\bigr).
+\]
+Their coefficients may depend on $t$. By the Leibniz rule,
+$\Diff^r\circ\Diff^s\subseteq\Diff^{r+s}$.
+
+\begin{lemma}[commuting covariant derivatives]\label{lem:ricci}
+\lean{ShortTime.permute_iteratedCovGrad}
+Let $W$ be a Riemannian bundle, $r\ge2$ and $\sigma\in S_r$. There is an operator
+$Q_\sigma\in\Diff^{r-2}(W,\otimes^rT^*M\otimes W)$ such that
+\[
+  \sigma(\nabla^r u)=\nabla^r u+Q_\sigma u\qquad\text{for all }u\in\Gamma(W).
+\]
+Its coefficients are universal polynomial expressions in the curvatures of $g$ and of $W$ and in their
+covariant derivatives of order at most $r-2$.
+\end{lemma}
+
+\begin{proof}
+Permutations act by parallel bundle isometries, which commute with $\nabla$ and preserve
+$\Diff^{r-2}$. Hence the set of $\sigma$ for which the lemma holds contains the identity and is closed
+under composition with adjacent transpositions. It therefore suffices to treat an adjacent
+transposition $\tau_i=(i\ i{+}1)$ with $1\le i\le r-1$.
+
+Write $\nabla^r u=\nabla^{i-1}(\nabla^2S)$ with $S=\nabla^{r-i-1}u$, a section of
+$W'=\otimes^{r-i-1}T^*M\otimes W$. The Ricci identity states that
+$(\nabla^2S)(X,Y)-(\nabla^2S)(Y,X)=R^{W'}(X,Y)S$, where the curvature $R^{W'}$ of $W'$ is expressed
+through $\mathrm{Rm}_g$ and $R^W$. The permutation $\tau_i$ exchanges exactly the two slots of
+$\nabla^2S$, so
+\[
+  \tau_i\nabla^ru-\nabla^ru=\nabla^{i-1}(\mathcal{R}S),
+\]
+where $\mathcal{R}$ is a zeroth-order bundle map. By the Leibniz rule,
+$\nabla^{i-1}(\mathcal{R}S)=\sum_{a+b=i-1}(\nabla^a\mathcal R)*\nabla^{b+r-i-1}u$, which is an
+operator of order $(i-1)+(r-i-1)=r-2$.
+\end{proof}
+
+\subsection{Jets and nonlinear operators}
+
+\begin{definition}[covariant jets]\label{def:jet}
+\lean{ShortTime.CovJetFiber, ShortTime.covJet}
+For a Riemannian bundle $W$ we set
+\[
+  \Jet^rW=\bigoplus_{k=0}^r\otimes^kT^*M\otimes W,\qquad
+  j^ru=(u,\nabla u,\dots,\nabla^ru),
+\]
+and call $j^ru$ the \emph{covariant $r$-jet} of $u$. Elements of $\Jet^rW$ are written
+$\zeta=(\zeta_0,\dots,\zeta_r)$, and $\Jet^rW$ carries the direct-sum fibre metric.
+\end{definition}
+
+\begin{definition}[equation data]\label{def:data}
+\lean{ShortTime.EquationData, ShortTime.localDom, ShortTime.localRep}
+\uses{def:jet}
+The data of the equation are:
+\begin{itemize}[nosep]
+\item an integer $p\ge1$, a time $T_0>0$ and a Riemannian bundle $V$;
+\item an open subset $\Dom\subseteq[0,T_0]\times\Jet^{2p}V$ (open in the relative topology);
+\item a smooth map $F\colon\Dom\to V$ with $F(t,\zeta)\in V_x$ whenever $\zeta\in\Jet^{2p}_xV$.
+\end{itemize}
+\end{definition}
+
+For a time-dependent section $u$ we say that $u$ \emph{has jets in} a set $\mathcal S$ if
+$(t,j^{2p}u(x,t))\in\mathcal S$ for all $(x,t)$. When $u$ has jets in $\Dom$ we write
+$F[u](x,t)=F\bigl(t,j^{2p}u(x,t)\bigr)$.
+
+\begin{definition}\label{def:solution}
+\lean{ShortTime.JointlySmoothOn, ShortTime.EquationData.IsSolution, ShortTime.EquationData.IsParabolicSolution}
+\uses{def:data, def:jet}
+Let $u_0\in C^\infty(M;V)$ and $T\in(0,T_0]$. A \emph{solution on $[0,T]$ with initial datum $u_0$}
+is a section $u\in C^\infty(M\times[0,T];V)$ that has jets in $\Dom$ and satisfies
+$\partial_tu=F[u]$ and $u(\cdot,0)=u_0$.
+\end{definition}
+
+\begin{definition}[linearization]\label{def:linearization}
+\lean{ShortTime.EquationData.partialDeriv, ShortTime.EquationData.principal}
+\uses{def:data}
+For $0\le k\le 2p$ let
+$D_kF(t,\zeta)\in\Hom(\otimes^kT^*_xM\otimes V_x,V_x)$ denote the derivative of $F$ along the summand
+$\otimes^kT^*M\otimes V$ of the fibre. For a smooth $u$ with jets in $\Dom$ we define the linearization
+\begin{equation}\label{eq:linearization}
+  L_u v=\sum_{k=0}^{2p}D_kF\bigl(t,j^{2p}u\bigr)(\nabla^kv),
+  \qquad\text{so that}\qquad
+  \frac{d}{d\varepsilon}\Big|_{\varepsilon=0}F[u+\varepsilon v]=L_uv,
+\end{equation}
+and its principal coefficient $P_u=D_{2p}F(t,j^{2p}u)$.
+\end{definition}
+
+\subsection{The Legendre condition}
+
+\begin{definition}[Legendre condition]\label{def:legendre}
+\lean{ShortTime.legendreForm, ShortTime.LegendreAt, ShortTime.EquationData.IsParabolicAt}
+\uses{def:linearization}
+Let $W$ be a Riemannian bundle, $x\in M$ and
+$P\in\Hom(\otimes^{2p}T^*_xM\otimes W_x,W_x)$.
+\begin{enumerate}[nosep]
+\item Define $\hatP\in\End(\otimes^pT^*_xM\otimes W_x)$ by
+  \[
+    \ip{\xi}{\hatP\eta}=\sum_{I,J}\ip{\xi_I}{P(e^I\otimes e^J\otimes\eta_J)},
+  \]
+  where $I$ and $J$ range over $\{1,\dots,n\}^p$ and $(e_i)$ is an orthonormal basis of $T_xM$. The
+  right-hand side does not depend on the basis.
+\item The \emph{Legendre modulus} of $P$ is
+  \[
+    \kappa(P)=\min_{\abs{\xi}=1}(-1)^{p+1}\ip{\xi}{\hatP\xi}.
+  \]
+\item $P$ satisfies the \emph{Legendre condition} if $\kappa(P)>0$.
+\end{enumerate}
+The \emph{parabolicity domain} of $F$ is
+\[
+  \Par=\{(t,\zeta)\in\Dom:\ \kappa\bigl(D_{2p}F(t,\zeta)\bigr)>0\}.
+\]
+A solution is \emph{parabolic} if it has jets in $\Par$.
+\end{definition}
+
+The sign $(-1)^{p+1}$ is chosen so that $\partial_tu=-(\Lap)^pu$, the ``heat equation of order
+$2p$'', is parabolic; see Lemma~\ref{lem:legendre-examples}(b).
+
+\begin{lemma}\label{lem:legendre-basic}
+\lean{ShortTime.legendreForm_add, ShortTime.legendreForm_smul, ShortTime.LegendreAt.combo, ShortTime.isOpen_parabolicDomain, ShortTime.legendre_tube}
+\uses{def:legendre}
+\begin{enumerate}[label=(\roman*),nosep]
+\item The map $P\mapsto\hatP$ is linear. Moreover $\kappa$ is superadditive and positively
+  homogeneous: $\kappa(P+P')\ge\kappa(P)+\kappa(P')$ and $\kappa(cP)=c\,\kappa(P)$ for $c\ge0$. In
+  particular each set $\{\kappa\ge\lambda\}$ is convex.
+\item The set $\Par$ is open in $[0,T_0]\times\Jet^{2p}V$.
+\item Let $K\subseteq\Par$ be compact. There are $\delta>0$ and $\kappa_K>0$ with the following
+  property. Suppose $(t',\zeta')\in[0,T_0]\times\Jet^{2p}V$ and there is $(t,\zeta)\in K$ over the same
+  point of $M$ with $\abs{t'-t}\le\delta$ and $\abs{\zeta'-\zeta}\le\delta$. Then
+  $(t',\zeta')\in\Par$ and $\kappa(D_{2p}F(t',\zeta'))\ge\kappa_K$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+(i) The map $P\mapsto\hatP$ is linear by definition, and a minimum of a sum is at least the sum of the
+minima.
+
+(ii) The function $(t,\zeta)\mapsto\kappa(D_{2p}F(t,\zeta))$ is continuous on $\Dom$, because $\kappa$
+is continuous in $P$ and in the base point, and $\Par$ is where it is positive.
+
+(iii) Let $K_\delta$ be the set of points $(t',\zeta')$ described in the statement. Then $K_\delta$ is
+compact, decreases with $\delta$, and $\bigcap_\delta K_\delta=K$. The continuous function
+$\kappa\circ D_{2p}F$ is at least $2\kappa_K:=\min_K\kappa\circ D_{2p}F>0$ on $K$, hence at least
+$\kappa_K$ on an open neighbourhood $U\subseteq\Dom$ of $K$. Since the $K_\delta$ are compact, they are
+contained in $U$ for $\delta$ small.
+\end{proof}
+
+\begin{lemma}[examples]\label{lem:legendre-examples}
+\lean{ShortTime.legendre_product, ShortTime.isDiffOp_lapIter_sub_modelTop, ShortTime.legendreAt_modelTop, ShortTime.polyTrace, ShortTime.legendreAt_polyTrace, ShortTime.productCLM, ShortTime.mmPairing}
+\uses{def:legendre, lem:ricci}
+\begin{enumerate}[label=(\alph*),nosep]
+\item \emph{Product structure.} Let $E_1,\dots,E_p$ be symmetric forms on $T^*_xM$ with
+  $E_\ell\ge e_\ell\,g^{-1}$ for constants $e_\ell>0$. Let $B\in\End(W_x)$ be symmetric with
+  $B\ge b>0$. Let
+  \[
+    P(X)=(-1)^{p+1}\sum E_1^{i_1j_1}\cdots E_p^{i_pj_p}\,B\,X_{i_1\dots i_pj_1\dots j_p}.
+  \]
+  Then $\kappa(P)\ge b\,e_1\cdots e_p$.
+\item \emph{Polyharmonic operator.} There is $Q_0\in\Diff^{2p-2}(W,W)$ with
+  \[
+    -(\Lap)^pu=P_0(\nabla^{2p}u)+Q_0u,\qquad
+    P_0(X)=(-1)^{p+1}\sum_{I}X_{II},
+  \]
+  and $\kappa(P_0)=1$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+(a) Identify $E_\ell$ with a symmetric endomorphism of $T^*_xM$ via $g$. Then
+$(-1)^{p+1}\hatP=E_1\otimes\cdots\otimes E_p\otimes B$ on $\otimes^pT^*_xM\otimes W_x$. A tensor
+product of positive symmetric operators is positive, and its spectrum consists of products of
+eigenvalues of the factors.
+
+(b) Since contraction commutes with $\nabla$,
+\[
+  (\Lap)^pu=(-1)^p\sum_{i_1,\dots,i_p}(\nabla^{2p}u)_{i_1i_1i_2i_2\dots i_pi_p}.
+\]
+Choose $\sigma\in S_{2p}$ that moves the slot pairs $(1,2),(3,4),\dots$ to the pairs
+$(1,p{+}1),(2,p{+}2),\dots$. Lemma~\ref{lem:ricci} applied to $\sigma$ yields
+$-(\Lap)^pu=(-1)^{p+1}\sum_I(\nabla^{2p}u)_{II}+Q_0u$. Finally, $P_0$ is the case $E_\ell=g^{-1}$,
+$B=\id$ of (a), and there $(-1)^{p+1}\widehat{P_0}=\id$.
+\end{proof}
+
+\begin{remark}[rewriting the top-order term]\label{rem:rewrite}
+The Legendre condition depends on how the top-order derivatives are arranged in $F$, not only on the
+equation. By Lemma~\ref{lem:ricci} this dependence is harmless. Let $P'$ be any smooth coefficient
+whose restriction to symmetric tensors agrees with that of $D_{2p}F$. Then
+$(P'-D_{2p}F)(\nabla^{2p}u)$ equals a lower-order expression in $u$, because
+$\nabla^{2p}u-\operatorname{Sym}\nabla^{2p}u=-\frac{1}{(2p)!}\sum_\sigma Q_\sigma u$. So $F$ can be
+replaced by a function $F'$ with $F'[u]=F[u]$ for every $u$ and $D_{2p}F'=P'$.
+
+Our theorems therefore apply whenever \emph{some} such rearrangement satisfies the Legendre
+condition. For example, the operators of \cite{MM} are written with the pairing
+$A^{i_1j_1\cdots i_pj_p}\nabla^{2p}_{i_1j_1\cdots i_pj_p}$. After moving to the split ordering of
+Lemma~\ref{lem:legendre-examples}(a) they satisfy the Legendre condition.
+\end{remark}
+
+\begin{remark}[Legendre condition and strong parabolicity]\label{rem:sos}
+\emph{Legendre implies strong parabolicity.} Taking $\xi=\eta^{\otimes p}\otimes v$ in
+Definition~\ref{def:legendre} shows that the Legendre condition implies strong (Petrovskii)
+parabolicity:
+\[
+  (-1)^{p+1}\ip{v}{P(\eta^{\otimes 2p}\otimes v)}\ge\kappa(P)\abs{\eta}^{2p}\abs{v}^2 .
+\]
+
+\emph{Characterization for scalar equations.} In the scalar case $W=\R$, and in view of
+Remark~\ref{rem:rewrite}, an operator admits a Legendre rearrangement if and only if
+$(-1)^{p+1}\sigma_P(\eta)-\lambda\abs\eta^{2p}$ is a sum of squares of forms of degree $p$ in $\eta$
+for some $\lambda>0$. Here $\sigma_P(\eta)=P(\eta^{\otimes2p})$ is the symbol.
+
+\emph{Consequences of Hilbert's theorem.} By Hilbert's theorem \cite{Hilbert}, every nonnegative form
+is a sum of squares exactly for binary forms, quadratic forms, and ternary quartics. Hence for scalar
+equations with $p=1$, or with $n\le2$, or with $n=3$ and $p=2$, strong parabolicity and the existence
+of a Legendre rearrangement are equivalent. In general they are not: a small perturbation of the
+Motzkin form \cite{Motzkin} gives a strongly parabolic scalar operator of order six in dimension
+three with no Legendre rearrangement. Such operators are outside the scope of this paper.
+\todo{double-check the precise form of this remark, in particular strict positivity versus SOS.}
+\end{remark}
+
+\subsection{How to check the hypothesis in practice}\label{sec:howto}
+
+General statements about ellipticity are easy to get lost in, so here is what the Legendre condition
+amounts to and how to verify it for a given equation.
+
+\paragraph{The underlying idea} Freeze the coefficients and insert a plane wave
+$u=e^{i\ip{\xi}{x}}a(t)$. Each covariant derivative becomes a factor of $\xi$, and the top-order term
+acts on $a$ like a matrix of size $\abs\xi^{2p}$, the \emph{symbol}. Parabolicity means that
+high-frequency waves are damped at a rate comparable to $\abs\xi^{2p}$. For example:
+\begin{itemize}[nosep]
+\item $\partial_tu=\Delta u$ has symbol $-\abs\xi^2$, so high frequencies are damped;
+\item $\partial_tu=+\Delta^2u$ has symbol $+\abs\xi^4$, so high frequencies grow: this is a backward
+  heat equation.
+\end{itemize}
+There are three standard ways to make this precise.
+\begin{enumerate}[label=(\arabic*),nosep]
+\item \emph{Strong parabolicity}: the symbol is uniformly negative. This only tests pure powers
+  $\xi\otimes\cdots\otimes\xi$.
+\item \emph{G\aa rding's inequality}: $-\ip{\psi}{L\psi}\ge c\norm\psi_{H^p}^2-C\norm\psi^2$, that is,
+  the operator dissipates energy up to lower-order errors. This is the only form in which ellipticity
+  enters the proofs below: everything after Lemma~\ref{lem:garding} uses nothing else.
+\item \emph{The Legendre condition}: the matrix $(-1)^{p+1}\hatP$ is positive definite on
+  \emph{all} $p$-tensors, not only on pure powers.
+\end{enumerate}
+
+\paragraph{Why Legendre is the convenient version} Integrating
+$\int\ip{\psi}{P(\nabla^{2p}\psi)}$ by parts $p$ times moves half of the derivatives onto the other
+factor. The result is $\int\ip{\nabla^p\psi}{\hatP\,\nabla^p\psi}$ up to lower-order terms
+(Lemma~\ref{lem:ibp}). Since $\nabla^p\psi$ can be an essentially arbitrary $p$-tensor, positivity of
+$\hatP$ on all $p$-tensors is exactly what this integration by parts needs.
+
+Deriving G\aa rding's inequality from strong parabolicity alone is also possible, but it requires
+Fourier analysis, freezing of coefficients and a partition of unity. In Fourier variables
+$\nabla^p\psi$ becomes a pure power, but only for constant coefficients. The difference between the
+two conditions is precisely the difference between ``positive on pure powers'' and ``positive on
+everything''.
+
+\paragraph{A recipe}
+\begin{enumerate}[label=(\arabic*),nosep]
+\item Linearize the equation and take the coefficient $P$ of $\nabla^{2p}u$.
+\item Arrange its $2p$ indices so that the first $p$ slots are paired with the last $p$ slots,
+  commuting covariant derivatives where necessary. This changes the equation only by lower-order
+  terms (Remark~\ref{rem:rewrite}).
+\item Check that the resulting matrix, multiplied by $(-1)^{p+1}$, is positive definite on
+  $V$-valued $p$-tensors.
+\end{enumerate}
+For the top-order terms occurring in geometric flows, namely $-(-\Delta)^p$ or a product
+$E_1\otimes\cdots\otimes E_p$ of positive definite forms, step~(3) is automatic by
+Lemma~\ref{lem:legendre-examples}.
+
+\begin{example}[the arrangement matters]\label{ex:bilaplacian}
+Consider $\partial_tu=-\Delta^2u$ for scalar $u$, so $p=2$ and $(-1)^{p+1}=-1$.
+\begin{itemize}[nosep]
+\item \emph{Adjacent pairing.} Writing
+  $-\Delta^2u=-g^{ab}g^{cd}\nabla_a\nabla_b\nabla_c\nabla_du$ and splitting the slots as $(a,b)$ and
+  $(c,d)$ gives the form $\xi\mapsto(\tr_g\xi)^2$ on $2$-tensors. It vanishes on trace-free $\xi$, so
+  the Legendre condition fails for this way of writing the operator.
+\item \emph{Split pairing.} Exchanging the two middle derivatives costs only a curvature term of
+  order two (Lemma~\ref{lem:ricci}). It gives
+  $-\Delta^2u=-g^{ac}g^{bd}\nabla_a\nabla_b\nabla_c\nabla_du+(\text{lower order})$. The form is now
+  $\xi\mapsto g^{ac}g^{bd}\xi_{ab}\xi_{cd}=\abs\xi^2$, so the Legendre condition holds with
+  $\kappa=1$.
+\end{itemize}
+This is Lemma~\ref{lem:legendre-examples}(b) for $p=2$.
+\end{example}
+
+If an equation is strongly parabolic but admits no Legendre arrangement (Remark~\ref{rem:sos}), one
+can replace Lemma~\ref{lem:garding} by the general G\aa rding inequality. Nothing downstream changes.
+
+\subsection{Main results}
+
+Set
+\[
+  m_0=\Bigl\lfloor\frac{n}{2p}\Bigr\rfloor+4 .
+\]
+The spaces $H^{k}(M;V)$ and $\Pp^m(V)$ used in Theorem~\ref{thm:C} are defined in
+Section~\ref{sec:spaces}.
+
+\begin{mainthm}[existence and regularity]\label{thm:A}
+\lean{ShortTime.exists_solution}
+\uses{def:solution, def:legendre}
+Let $u_0\in C^\infty(M;V)$ with $(0,j^{2p}u_0(x))\in\Par$ for every $x\in M$. Then there are
+$T\in(0,T_0]$ and a parabolic solution $u\in C^\infty(M\times[0,T];V)$ with initial datum $u_0$.
+\end{mainthm}
+
+\begin{mainthm}[uniqueness]\label{thm:B}
+\lean{ShortTime.solution_unique, ShortTime.EquationData.solution_unique_cov}
+\uses{def:solution, def:legendre}
+Two parabolic solutions on $[0,T]$ with the same initial datum coincide.
+\end{mainthm}
+
+\begin{mainthm}[smooth dependence]\label{thm:C}
+\lean{ShortTime.solution_smooth_dependence}
+\uses{def:solution, def:legendre, def:sobolev, def:parabolic}
+Let $u$ be a parabolic solution on $[0,T]$ with initial datum $u_0$, and let $m\ge m_0$. There are
+$\delta>0$ and a $C^\infty$ map
+\[
+  \mathcal S\colon\{a\in H^{2pm}(M;V):\norm{a-u_0}_{H^{2pm}}<\delta\}\to\Pp^m(V)
+\]
+with $\mathcal S(u_0)=u$ and the following property: for every smooth $a$ in the domain,
+$\mathcal S(a)$ is a parabolic solution on $[0,T]$ with initial datum $a$.
+\end{mainthm}
+
+\begin{corollary}[continuous dependence, sequential form]\label{cor:C}
+\lean{ShortTime.solution_continuous_dependence, ShortTime.solution_continuous_dependence', ShortTime.solution_continuous_dependence_of_covariant, ShortTime.EquationData.continuous_dependence_cov, ShortTime.EquationData.traceRegularity, ShortTime.EquationData.smoothRep_time_trace}
+\uses{def:solution, def:legendre}
+Let $u$ be a parabolic solution on $[0,T]$ with initial datum $u_0$. If $u_0^{(k)}\to u_0$ in
+$C^\infty(M;V)$, then for all large $k$ the parabolic solution $u^{(k)}$ with initial datum
+$u_0^{(k)}$ exists on $[0,T]$, and $u^{(k)}\to u$ in $C^\infty(M\times[0,T];V)$.
+\end{corollary}
+
+The formal version of Corollary~\ref{cor:C} states the convergence of every covariant derivative
+$\nabla^j(u^{(k)}-u)$, uniformly on $M\times[0,T]$. Convergence of mixed derivatives
+$\nabla^j\partial_t^i(u^{(k)}-u)$ then follows by induction on $i$ from the equation, since the jets
+of $u$ lie in a compact subset of $\mathcal D$. Theorem~\ref{thm:C} itself, which involves the
+spaces $H^{2pm}$ and $\Pp^m$, is not among the trusted formal statements
+(Section~\ref{sec:formal}); it is used in the proof of Corollary~\ref{cor:C}.
+
+\begin{corollary}[maximal solutions]\label{cor:maximal}
+\lean{ShortTime.exists_maximal_solution, ShortTime.EquationData.isParabolicSolution_of_le}
+\uses{def:solution}
+Under the hypothesis of Theorem~\ref{thm:A}, let $T^*$ be the supremum of the times $T\le T_0$ for
+which a parabolic solution on $[0,T]$ exists. There is a unique section $u$ on $M\times[0,T^*)$, or on
+$M\times[0,T_0]$ if $T^*=T_0$ is attained, whose restriction to every $[0,T]$ with $T<T^*$ is a
+parabolic solution.
+\end{corollary}
+
+\begin{proof}
+\uses{thm:A, thm:B}
+By Theorem~\ref{thm:B}, parabolic solutions on different intervals agree where both are defined.
+\end{proof}
+
+\begin{corollary}[Mantegazza--Martinazzi {\cite[Thm.~1.1]{MM}}]\label{cor:MM}
+\lean{ShortTime.mantegazza_martinazzi, ShortTime.MMData, ShortTime.MMData.F, ShortTime.MMData.toEquationData, ShortTime.MMData.rearranged, ShortTime.MMData.rearranged_isSolution_iff, ShortTime.MMData.rearranged_isParabolicAt, ShortTime.MMData.isParabolicSolution_rearranged, ShortTime.exists_ricci_jetMap, ShortTime.mmPairing_eq_productCLM_add}
+\uses{def:solution}
+Let $V=M\times\R$ with its flat connection, and let
+\[
+  F(t,\zeta)=A(t,\zeta_0,\dots,\zeta_{2p-1})(\zeta_{2p})+b(t,\zeta_0,\dots,\zeta_{2p-1})
+\]
+on $\Dom=[0,T_0]\times\Jet^{2p}V$. Suppose $A$ has the product structure
+$A=(-1)^{p-1}E_1\otimes\cdots\otimes E_p$ of \cite{MM}, and each $E_\ell$ is locally uniformly
+positive definite, meaning that on every compact subset of its domain it is bounded below by a
+positive multiple of $g^{-1}$. After the rearrangement of Remark~\ref{rem:rewrite} we have
+$\Par=\Dom$. In particular, every smooth initial datum has a unique smooth solution for short time,
+and it depends continuously on the initial datum in $C^\infty$.
+\end{corollary}
+
+\begin{proof}
+\uses{thm:A, thm:B, cor:C, lem:legendre-examples, lem:ricci}
+By Remark~\ref{rem:rewrite} (made exact by the Ricci identity, Lemma~\ref{lem:ricci}: permuting the
+$2p$ derivative slots changes $\nabla^{2p}u$ by a smooth function of the jet of order $2p-2$) we
+replace $F$ by $F'$ with the same value on jets of sections, whose principal coefficient is the split
+pairing $(-1)^{p+1}E_1\otimes\cdots\otimes E_p$. By Lemma~\ref{lem:legendre-examples}(a), with the
+sign $(-1)^{p-1}=(-1)^{p+1}$, every point of $\Dom$ lies in $\Par$ for $F'$. Solutions of $F$ and
+$F'$ coincide, so Theorems~\ref{thm:A}, \ref{thm:B} and Corollary~\ref{cor:C} apply to $F$. In the
+formalization the $E_\ell$ are only assumed positive definite at each point; locally uniform
+positivity then follows by continuity.
+\end{proof}
+
+% ===========================================================================
+\section{Function spaces}\label{sec:spaces}
+% ===========================================================================
+
+In this section $W$ is a Riemannian bundle over $M$. Constants $C$ may change from line to line. They
+depend only on the quantities indicated and on $(M,g)$ and $W$.
+
+\subsection{Sobolev spaces of integer order}
+
+\begin{definition}\label{def:sobolev}
+\lean{ShortTime.sobolevNormSq, ShortTime.negSobolevNorm, ShortTime.hNormSq}
+Let $k\in\N$ and $u,f\in C^\infty(M;W)$.
+\begin{enumerate}[nosep]
+\item The positive-order norm is $\norm{u}_{H^k}^2=\sum_{i=0}^k\norm{\nabla^iu}^2$. The space
+  $H^k(M;W)$ is the completion of $C^\infty(M;W)$ in this norm; it embeds injectively in $L^2$ because
+  $\nabla$ is closable.
+\item The negative-order norm is
+  \[
+    \norm{f}_{H^{-k}}=\sup\{\ip{f}{\varphi}:\varphi\in C^\infty(M;W),\ \norm{\varphi}_{H^k}\le1\}.
+  \]
+\end{enumerate}
+We only use these norms on smooth sections.
+\end{definition}
+
+\begin{lemma}\label{lem:sobolev-basic}
+\lean{ShortTime.sobolevNormSq_succ, ShortTime.inner_le_negSobolevNorm, ShortTime.exists_negSobolevNorm_covGrad_le, ShortTime.exists_sobolevNormSq_opField_le, ShortTime.exists_negSobolevNorm_opField_covGrad_le, ShortTime.sobolevNorm_diffOp_le}
+\uses{def:sobolev}
+For smooth sections:
+\begin{enumerate}[label=(\roman*),nosep]
+\item $\norm{u}_{H^{k+1}}^2=\norm{u}^2+\norm{\nabla u}_{H^k}^2$ for $k\ge0$.
+\item $\abs{\ip{f}{\varphi}}\le\norm f_{H^{-k}}\norm\varphi_{H^k}$. Moreover $s\mapsto\norm f_{H^s}$
+  is nondecreasing on $\mathbb Z$.
+\item For every $s\in\mathbb Z$ there is $C$ with $\norm{\nabla f}_{H^{s-1}}\le C\norm f_{H^s}$.
+\item Let $A\in\Diff^r(W,W')$ be a time-independent operator, or a single time slice of a
+  time-dependent one. If $s\ge0$ then $\norm{Au}_{H^s}\le C\norm{u}_{H^{s+r}}$. If $r=0$ this also
+  holds for $s<0$. The constant depends on bounds for finitely many derivatives of the coefficients of
+  $A$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+(i) follows from the definition, since $\nabla^{i+1}u=\nabla^i(\nabla u)$. The inequality in (ii) is
+the definition, and monotonicity follows from $\norm\varphi_{H^{k}}\le\norm\varphi_{H^{k+1}}$.
+
+(iii) For $s\ge1$ this is (i). For $s=-k\le0$, observe that
+$\ip{\nabla f}{\varphi}=\ip{f}{\nabla^*\varphi}$ and
+$\norm{\nabla^*\varphi}_{H^k}\le\sqrt n\,\norm{\nabla\varphi}_{H^k}\le\sqrt n\,\norm{\varphi}_{H^{k+1}}$,
+because $\nabla^*$ is a contraction of $\nabla$ and contractions commute with $\nabla$.
+
+(iv) For $s\ge0$ this follows from the Leibniz rule. For $s<0$ and $r=0$ use duality:
+$\ip{Au}{\varphi}=\ip{u}{A^\dagger\varphi}$, where $A^\dagger$ is the pointwise adjoint, and apply the
+case $s\ge0$ to $A^\dagger$.
+\end{proof}
+
+\begin{lemma}[interpolation]\label{lem:interp}
+\lean{ShortTime.jetNorm_le_interp, ShortTime.exists_jetSum_pred_le, ShortTime.exists_sobolevNormSq_pred_le, ShortTime.exists_sobolevNormSq_le}
+\uses{def:sobolev}
+For integers $0<j<k$ and every $\varepsilon>0$ there is $C=C(n,j,k,\varepsilon)$ such that
+\[
+  \norm{\nabla^ju}\le\varepsilon\norm{\nabla^ku}+C\norm u\qquad\text{for all smooth }u.
+\]
+Consequently, for $k\ge1$ and with $N_k(u)=\sum_{i\le k}\norm{\nabla^iu}$,
+\[
+  N_{k-1}(u)\le\varepsilon\norm{\nabla^ku}+C\norm u,\qquad
+  \norm{u}_{H^{k-1}}^2\le\varepsilon\norm{u}_{H^k}^2+C\norm u^2,\qquad
+  \norm{u}_{H^k}^2\le2\norm{\nabla^ku}^2+C\norm u^2.
+\]
+\end{lemma}
+
+\begin{proof}
+Let $a_i=\norm{\nabla^iu}$. Integrating by parts,
+\[
+  a_i^2=\ip{\nabla(\nabla^{i-1}u)}{\nabla^iu}=\ip{\nabla^{i-1}u}{\nabla^*\nabla^iu}\le\sqrt n\,a_{i-1}a_{i+1}.
+\]
+If some $a_i$ with $i\ge1$ vanishes, then $a_j=0$ for all $j\ge1$ and there is nothing to prove.
+Otherwise $c_i=\log a_i+\tfrac14(\log n)\,i^2$ is a convex sequence. Hence
+$a_j\le n^{j(k-j)/4}a_0^{1-j/k}a_k^{j/k}$, and Young's inequality gives the claim. The consequences
+follow by summing over $j$, using $\norm u_{H^{k-1}}^2\le N_{k-1}(u)^2$ and
+$\norm{\nabla^ku}\le\norm u_{H^k}$.
+\end{proof}
+
+Note that $\norm u_{H^k}\le N_k(u)\le\sqrt{k+1}\,\norm u_{H^k}$. We set $N_k=N_0$ for $k<0$.
+
+\begin{lemma}[permuting derivatives in $L^2$]\label{lem:ricci-l2}
+\lean{ShortTime.exists_perm_bound, ShortTime.exists_swap_defect, ShortTime.toModel_iteratedCovGrad_domDomCongr}
+\uses{def:sobolev}
+Let $r\in\N$ and let $\sigma\in S_r$ act on the $r$ derivative slots of $\nabla^ru$. There is $C$ with
+\[
+  \norm{\sigma(\nabla^ru)-\nabla^ru}\le C\,N_{r-2}(u)\qquad\text{for all smooth }u.
+\]
+\end{lemma}
+
+\begin{proof}
+Permutations of slots are fibrewise isometries. Hence the set of $\sigma$ for which the estimate
+holds contains the identity and is closed under products, since
+$\norm{\sigma\sigma'\nabla^ru-\nabla^ru}\le\norm{\sigma'\nabla^ru-\nabla^ru}+\norm{\sigma\nabla^ru-\nabla^ru}$.
+It therefore suffices to treat an adjacent transposition $\tau_i$. As in the proof of
+Lemma~\ref{lem:ricci}, $\tau_i\nabla^ru-\nabla^ru=\nabla^{i-1}(\mathcal RS)$ with
+$S=\nabla^{r-i-1}u$ and $\mathcal R$ of order zero: the Ricci identity handles the two slots created
+by $\nabla^2S$, and $\nabla$ commutes with permutations of the slots it does not create. By the
+Leibniz rule $\abs{\nabla^{i-1}(\mathcal RS)}\le C\sum_{b\le i-1}\abs{\nabla^bS}$ pointwise, and
+integrating gives the claim.
+\end{proof}
+
+\begin{fact}[Sobolev embedding {\cite{Aubin,Hebey}}]\label{fact:sobolev}
+\uses{def:sobolev}
+\source{DG: Analysis/Sobolev/Embedding/Tensor (spectral norms; needs norm equivalence)}
+If $k>n/2+i$, then $\sup_M\abs{\nabla^iu}\le C\norm{u}_{H^k}$ for smooth $u$. Hence elements of $H^k$
+are $C^i$ sections.
+\end{fact}
+
+\begin{fact}[weak and strong derivatives]\label{fact:weak}
+\uses{def:sobolev}
+\source{DG: Analysis/Sobolev/Intrinsic (to check)}
+Let $Y_1,\dots,Y_q$ be smooth vector fields spanning $T_xM$ at every $x$. Let $u\in L^2(M;W)$, and
+suppose that for every word $(a_1,\dots,a_d)$ with $d\le k$ the weak derivative
+$\nabla_{Y_{a_1}}\cdots\nabla_{Y_{a_d}}u$ lies in $L^2$, defined by duality with the formal adjoint
+$\nabla_Y^\dagger\psi=-\nabla_Y\psi-(\operatorname{div}Y)\psi$. Then $u\in H^k(M;W)$ and
+\[
+  \norm{u}_{H^k}\le C\sum_{d\le k}\ \sum_{a_1,\dots,a_d}\norm{\nabla_{Y_{a_1}}\cdots\nabla_{Y_{a_d}}u}.
+\]
+The same holds for time-dependent sections with $L^2(0,T;\cdot)$ norms. This follows from Friedrichs
+mollification in charts.
+\end{fact}
+
+\subsection{Parabolic Sobolev spaces}
+
+Fix $T\in(0,T_0]$ and $m\in\N$.
+
+\begin{definition}\label{def:parabolic}
+\lean{ShortTime.ParabolicSpace, ShortTime.ParabolicSpace.zeroAtStart}
+\uses{def:sobolev}
+For $u\in C^\infty(M\times[0,T];W)$ let
+\[
+  \norm{u}_{\Pp^m}^2=\sum_{\substack{j,i\ge0\\2pj+i\le2pm}}\int_0^T\norm{\partial_t^j\nabla^iu}^2dt
+  =\sum_{j=0}^m\int_0^T\norm{\partial_t^ju}_{H^{2p(m-j)}}^2dt .
+\]
+\begin{itemize}[nosep]
+\item $\Pp^m(W)$ is the completion of $C^\infty(M\times[0,T];W)$ in this norm. It embeds in
+  $L^2(M\times[0,T];W)$.
+\item $\Pp^m_0(W)$ is the closure in $\Pp^m(W)$ of $\{u\in C^\infty:\ u(\cdot,0)=0\}$.
+\end{itemize}
+Thus $\Pp^0=L^2$, and $\Pp^m_0$ is a closed subspace of $\Pp^m$, so it is a Hilbert space.
+\end{definition}
+
+\begin{lemma}\label{lem:parabolic-basic}
+\lean{ShortTime.ParabolicSpace.timeDeriv, ShortTime.ParabolicSpace.jet, ShortTime.ParabolicSpace.constExt, ShortTime.ParabolicSpace.evalJet, ShortTime.ParabolicSpace.evalJet_ofSmooth, ShortTime.ParabolicSpace.continuousOn_evalJet_bundle, ShortTime.ParabolicSpace.evalJet_eq_zero_of_mem_zeroAtStart, ShortTime.ParabolicSpace.eq_zero_of_ofSmooth_eq_zero, ShortTime.ParabolicSpace.levelIncl, ShortTime.ParabolicSpace.evalJet_levelIncl, ShortTime.sobolevNormSq_le_integral, ShortTime.sobolevNormSq_timeDerivIter_le_parabolicInner, ShortTime.parabolicInner_iteratedCovGrad_le, ShortTime.parabolicInner_timeDeriv_le}
+\uses{def:parabolic, lem:sobolev-basic}
+\begin{enumerate}[label=(\roman*),nosep]
+\item $\partial_t\colon\Pp^{m+1}\to\Pp^m$ and $\nabla^k\colon\Pp^m\to\Pp^{m-1}$ for $k\le2p$ are
+  bounded. Hence $j^{2p}\colon\Pp^m(W)\to\Pp^{m-1}(\Jet^{2p}W)$ is bounded.
+\item $\Pp^{m+1}\hookrightarrow\Pp^m$ with norm at most $1$.
+\item Every $A\in\Diff^{2p}(W,W')$ whose coefficients are smooth on $M\times[0,T]$ is bounded
+  $\Pp^m\to\Pp^{m-1}$. In particular $\partial_t-L$ is bounded $\Pp^m\to\Pp^{m-1}$ for
+  $L\in\Diff^{2p}(W,W)$.
+\item For $a\in H^{2pm}(M;W)$, the constant extension $(Ea)(x,t)=a(x)$ satisfies
+  $\norm{Ea}_{\Pp^m}=\sqrt T\,\norm a_{H^{2pm}}$.
+\item If $m\ge1$, then $u\mapsto u(\cdot,t)$ extends to a bounded map $\Pp^m\to L^2(M;W)$ that is
+  continuous in $t$. Moreover $u(\cdot,0)=0$ for $u\in\Pp^m_0$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+(i) and (ii) are immediate from the definition: for instance
+$\partial_t^j\nabla^i\nabla^ku=\partial_t^j\nabla^{i+k}u$ and $2pj+i+k\le2pm$ when
+$2pj+i\le2p(m-1)$ and $k\le2p$. (iii) follows from the Leibniz rule in $x$ and $t$. (iv) is a direct
+computation.
+
+(v) For a Hilbert space $X$ and $h\in C^1([0,T];X)$ we have
+$\sup_t\norm{h(t)}_X\le C_T\bigl(\norm h_{L^2X}+\norm{h'}_{L^2X}\bigr)$. Apply this with $X=L^2$ and
+$h=u$.
+\end{proof}
+
+\begin{lemma}[embedding]\label{lem:embedding}
+\lean{ShortTime.exists_fiberNormSq_le_parabolicInner, ShortTime.good_of_parabolic, ShortTime.rawJoint_limSec, ShortTime.jointlySmoothOn_limFam, ShortTime.jet_limFam, ShortTime.contDiffOn_limChart, ShortTime.ParabolicSpace.eq_zero_of_evalJet_eq_zero, ShortTime.ParabolicSpace.eq_ofSmooth_of_evalJet_eq}
+\uses{lem:parabolic-basic, fact:sobolev}
+Let $m\ge1$ and $i,j\ge0$ with $j\le m-1$ and $2p(m-j-1)>n/2+i$. Then
+\[
+  \sup_{M\times[0,T]}\abs{\partial_t^j\nabla^iu}\le C\norm{u}_{\Pp^m}\qquad\text{for smooth }u .
+\]
+Hence $\partial_t^j\nabla^iu$ is continuous for every $u\in\Pp^m$. If smooth $u_k$ form a Cauchy
+sequence in $\Pp^m$ for every $m$, then all $\partial_t^j\nabla^iu_k$ converge uniformly on
+$M\times[0,T]$, the limit $u$ is in $C^\infty(M\times[0,T];W)$, and
+$\partial_t^j\nabla^iu=\lim_k\partial_t^j\nabla^iu_k$. In particular, if $u\in\Pp^m$ for all $m$, then
+$u\in C^\infty(M\times[0,T];W)$.
+\end{lemma}
+
+\begin{proof}
+Both $\partial_t^ju$ and $\partial_t^{j+1}u$ are bounded in $L^2(0,T;H^{2p(m-j-1)})$ by
+$\norm u_{\Pp^m}$. Apply the inequality from the proof of
+Lemma~\ref{lem:parabolic-basic}(v) with $X=H^{2p(m-j-1)}$, and then Fact~\ref{fact:sobolev}.
+
+For the sequence, the estimate makes every $\partial_t^j\nabla^iu_k$ uniformly Cauchy. Fix a chart
+and a local frame $B_1,\dots,B_n$ of vector fields with constant coordinates. In the chart and the
+induced trivialization, the derivative of the reading of $u_k$ along the $\ell$-th coordinate is the
+reading of $\nabla_{B_\ell}u_k$ minus a Christoffel term that is linear in $u_k$ with smooth
+coefficients, and its time derivative is the reading of $\partial_tu_k$. These converge uniformly, so
+the limit of the readings is $C^1$ with the limits as derivatives. The sequences
+$\partial_tu_k$ and $\nabla_{B_\ell}u_k$ are again Cauchy in every $\Pp^m$, so induction gives
+$C^\infty$. Evaluating at the centre of the chart identifies $\partial_tu$ and $\nabla_{B_\ell}u$ with
+the limits of $\partial_tu_k$ and $\nabla_{B_\ell}u_k$. Since the $B_\ell$ span each tangent space, this
+identifies $\nabla u$ with $\lim_k \nabla u_k$, and by induction all $\partial_t^j\nabla^iu$.
+
+An element $v\in\Pp^m$ is determined by its continuous representative: if $v_k\to v$ with $v_k$ smooth
+and $v_k\to0$ uniformly, then every $\partial_t^j\nabla^iv_k$ converges in $L^2$, and integrating by parts
+against test sections vanishing at $t=0,T$ shows inductively that all these limits vanish, so $v=0$.
+
+For the last claim, note that the inclusions $\Pp^{m+1}\hookrightarrow\Pp^m$ are compatible with the
+embeddings into $L^2$. Apply the sequence statement to smooth approximations of $u$ in $\Pp^k$, $k\to\infty$.
+\end{proof}
+
+\begin{proposition}[algebra and composition]\label{prop:nemytskii}
+\lean{ShortTime.ParabolicSpace.bilinear_le, ShortTime.ParabolicSpace.contDiff_comp, ShortTime.FaaDiBruno.exists_tame_bound_graph, ShortTime.FibreMap, ShortTime.FibreMap.exists_tame_pointwise, ShortTime.parabolicInner_le_of_jetSq_le, ShortTime.exists_jetSq_le_parabolicInner, ShortTime.SmoothExtension.exists_contDiffOn_extension, ShortTime.FibreMap.fibreDeriv, ShortTime.FibreMap.taylorMap, ShortTime.FibreMap.exists_block_bound, ShortTime.FibreMap.exists_derivFam_bound, ShortTime.FibreMap.exists_taylor_bound}
+\uses{def:parabolic, lem:embedding}
+Let $N\ge N_0:=\lfloor n/(2p)\rfloor+3$.
+\begin{enumerate}[label=(\roman*),nosep]
+\item $\sup\abs u\le C\norm u_{\Pp^N}$. Moreover, for every smooth bilinear bundle map
+  $\beta\colon W_1\times W_2\to W_3$, possibly depending on $t$,
+  \[
+    \norm{\beta(u,v)}_{\Pp^N}\le C\norm u_{\Pp^N}\norm v_{\Pp^N}.
+  \]
+\item Let $E,E'$ be Riemannian bundles, $S\subseteq\R^d$ open, $\mathcal U\subseteq S\times[0,T]\times E$
+  open, and $\Phi\colon\mathcal U\to E'$ smooth and fibre-preserving. Let
+  $\mathcal V=\{(s,u)\in S\times\Pp^N(E):(s,t,u(x,t))\in\mathcal U\text{ for all }(x,t)\}$, which is
+  open. Then the map
+  \[
+    \mathcal V\to\Pp^N(E'),\qquad(s,u)\mapsto\Phi_s(t,u)
+  \]
+  is $C^\infty$. Its derivative in $u$ is $h\mapsto D_u\Phi_s(t,u)h$.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+\emph{Step 1: a pointwise bound for low-order factors.} Let $2pj+i\le pN$. Then $j\le N-1$ and
+\[
+  2p(N-j-1)-i=2pN-2p-(2pj+i)\ge pN-2p>n/2
+\]
+by the choice of $N_0$. By Lemma~\ref{lem:embedding}, $\sup\abs{\partial_t^j\nabla^iu}\le C\norm u_{\Pp^N}$.
+
+\emph{Step 2: the product estimate (i).} Expand $\partial_t^j\nabla^i\beta(u,v)$ with $2pj+i\le2pN$ by
+the Leibniz rule. In each term the parabolic weights $2pj_1+i_1$ and $2pj_2+i_2$ of the two factors add
+up to at most $2pN$, so one of them is at most $pN$. Estimate that factor in $L^\infty$ by Step~1 and
+the other in $L^2$.
+
+\emph{Step 3: composition.} Part (ii) is local, so we may work in charts and trivializations, with $s$
+as additional variables that are constant in $(x,t)$. By the chain rule (Fa\`a di Bruno),
+$\partial^\alpha_{t,x}[\Phi(t,x,u)]$ is a sum of terms
+\[
+  (\partial^\beta_{t,x}D^k_u\Phi)(t,x,u)\,[\partial^{\alpha_1}u,\dots,\partial^{\alpha_k}u],\qquad
+  \beta+\alpha_1+\dots+\alpha_k=\alpha,\ \abs{\alpha_i}\ge1.
+\]
+The coefficients are bounded, since $u$ takes values in a compact subset of $\mathcal U$. At most one
+$\alpha_i$ has parabolic weight larger than $pN$, so the terms are estimated as in Step~2. This shows
+that $\Phi_*\colon u\mapsto\Phi(t,u)$ maps bounded subsets of $\mathcal V$ into bounded sets, first for
+smooth $u$ and then, by continuity, for all $u$.
+
+\emph{Step 4: differentiability.} Taylor's formula
+\[
+  \Phi(u+h)-\Phi(u)-D\Phi(u)h=\int_0^1(1-\tau)D^2\Phi(u+\tau h)[h,h]\,d\tau,
+\]
+combined with (i) and Step~3, gives a bound $C\norm h_{\Pp^N}^2$ on bounded sets. So $\Phi_*$ is
+differentiable, and its derivative is multiplication by the $\Pp^N$-section $D\Phi(u)$. The map
+$u\mapsto D\Phi(u)$ is again a composition operator, so by induction $\Phi_*$ is $C^\infty$. Joint
+smoothness in $(s,u)$ follows in the same way.
+\end{proof}
+
+\begin{corollary}[the nonlinear operator]\label{cor:N}
+\lean{ShortTime.EquationData.exists_nonlinOp, ShortTime.EquationData.exists_nonlinOp_aux, ShortTime.EquationData.exists_dom_tube, ShortTime.FibreMap.exists_nonlinOp_param, ShortTime.FibreMap.paramLift, ShortTime.FibreMap.exists_nonlinOp_param_ball}
+\uses{def:data, def:linearization, def:parabolic}
+Let $m\ge m_0=N_0+1$. The set
+\[
+  \Pp^m_\Dom=\{u\in\Pp^m(V):\ (t,j^{2p}u(x,t))\in\Dom\text{ for all }(x,t)\}
+\]
+is open. The map $u\mapsto F[u]$ is $C^\infty$ from $\Pp^m_\Dom$ to $\Pp^{m-1}(V)$, with derivative
+\[
+  v\mapsto\sum_kD_kF(t,j^{2p}u)(\nabla^kv).
+\]
+The same holds for smooth families $F_s$ depending on a parameter $s$, jointly in $(s,u)$.
+
+In the formalization the statement is local: near a smooth $w$ with jets in $\Dom$, the map is
+defined on a ball of $\Pp^m$ around $w$, agrees with $u\mapsto F[u]$ on smooth $u$, is $C^\infty$ at
+$w$ (for each $n$ it is $C^n$ on a ball whose radius depends on $n$), and its derivative at $w$ is
+$v\mapsto\sum_kD_kF(t,j^{2p}w)(\nabla^kv)$. This is what the implicit function
+theorem needs.
+\end{corollary}
+
+\begin{proof}
+\uses{prop:nemytskii, lem:parabolic-basic}
+Compose the bounded linear map $j^{2p}\colon\Pp^m\to\Pp^{m-1}(\Jet^{2p}V)$ of
+Lemma~\ref{lem:parabolic-basic}(i) with Proposition~\ref{prop:nemytskii}, using $N=m-1\ge N_0$. In the formalization the derivatives $g_k(u)=D^k_\zeta F(t,j^{2p}u)[j^{2p}h_1,\dots,j^{2p}h_k]$
+satisfy, for smooth $u$ near $w$ and smooth $h_i$, the bounds
+$\norm{g_k(u)(h)}\le C\prod\norm{h_i}$ and
+$\norm{g_k(u+h)-g_k(u)-g_{k+1}(u)(h,\cdot)}\le C\norm h^2$ (Taylor's formula with integral
+remainder at fibre level, and Proposition~\ref{prop:nemytskii}); a map with such Taylor bounds on a
+dense subspace extends to a $C^n$ map on the completion.
+\end{proof}
+
+\begin{lemma}[spatial composition]\label{lem:spatial-nemytskii}
+\lean{ShortTime.EquationData.contDiff_spatialOp}
+\uses{def:data, def:sobolev, fact:sobolev}
+Let $k>n/2$. The map $a\mapsto F(t,j^{2p}a)$ is $C^\infty$ from $H^{k+2p}(M;V)$ to $H^k(M;V)$, jointly
+in $t$. It is defined on the open set of those $a$ whose jets lie in the slice $\Dom_t$.
+\end{lemma}
+
+\begin{proof}
+The proof of Proposition~\ref{prop:nemytskii}, without time derivatives.
+\end{proof}
+
+\subsection{Spectral facts}
+
+\begin{fact}[eigenbasis {\cite{Aubin}}]\label{fact:eigen}
+\source{DG: Analysis/Spectral/Tensor (TensorEigenIdx; tensor bundles)}
+There is an $L^2$-orthonormal basis $(\varphi_i)_{i\ge1}$ of $L^2(M;W)$ consisting of smooth sections
+with $\Lap\varphi_i=\mu_i\varphi_i$, where $0\le\mu_1\le\mu_2\le\cdots\to\infty$.
+\end{fact}
+
+\begin{fact}[elliptic estimate]\label{fact:elliptic}
+\uses{def:sobolev}
+\source{DG: Analysis/Spectral/Tensor/SobolevScale/Jet/Bounds/IteratedCovariantDerivative (hsJet\_le, hs\_le\_jet; covariant tensors of every rank)}
+For every $k\in\N$ there is $C$ such that
+\[
+  \norm{u}_{H^{2k}}\le C\bigl(\norm{(\Lap)^ku}+\norm u\bigr)\qquad\text{for smooth }u.
+\]
+This follows from Bochner-type integrations by parts together with Lemma~\ref{lem:ricci}, by
+induction on $k$.
+\end{fact}
+
+Let $\Pi_N$ denote the $L^2$-orthogonal projection onto the span of $\varphi_1,\dots,\varphi_N$. Since
+$\Lap$ is symmetric on smooth sections, $\Pi_N(\Lap)^k=(\Lap)^k\Pi_N$ on smooth sections.
+
+% ===========================================================================
+\section{Linear theory}\label{sec:linear}
+% ===========================================================================
+
+\subsection{The class of operators and G\aa rding's inequality}
+
+\begin{definition}\label{def:class}
+\lean{ShortTime.LinearOp, ShortTime.LinearOp.apply, ShortTime.LinearOp.Solves, ShortTime.LinearOp.IsParabolic}
+\uses{def:legendre}
+Let $W$ be a Riemannian bundle, $T\in(0,T_0]$, $\lambda>0$, $K\in\N$ and $\Lambda\ge0$. The class
+$\Lcl(W;T,\lambda,K,\Lambda)$ consists of the operators
+\[
+  Lu=P(\nabla^{2p}u)+\sum_{k<2p}R_k(\nabla^ku)
+\]
+with the following properties:
+\begin{itemize}[nosep]
+\item the coefficients $P$ and $R_k$ are smooth on $M\times[0,T]$;
+\item $\kappa(P(x,t))\ge\lambda$ for all $(x,t)$;
+\item the sum of $\sup\abs{\partial_t^a\nabla^bP}$ and $\sup\abs{\partial_t^a\nabla^bR_k}$ over
+  $a+b\le K$ and all $k$ is at most $\Lambda$.
+\end{itemize}
+\end{definition}
+
+\begin{definition}[flip of a coefficient]\label{def:flip}
+\lean{ShortTime.flipField, ShortTime.flipRemainder}
+Let $E,F$ be Riemannian bundles and $A\in\Gamma(\Hom(T^*M\otimes E,F))$, the first slot being the
+derivative slot. Its \emph{flip} is $\check A\in\Gamma(\Hom(E,T^*M\otimes F))$,
+\[
+  \check A(w)(v,\cdot)=A(v^\flat\otimes w)(\cdot),\qquad v^\flat=g(v,\cdot).
+\]
+Its \emph{remainder} is $R_A=\operatorname{tr}_{12}\circ\nabla\check A\in\Gamma(\Hom(E,F))$, where
+$\operatorname{tr}_{12}$ contracts the two leading slots with $g^{-1}$.
+\end{definition}
+
+\begin{lemma}[one integration by parts]\label{lem:ibp-one}
+\lean{ShortTime.inner_apply_covGrad, ShortTime.cometricDoubleTraceFib_comp_slotExtend_flipFib, ShortTime.covDivergence_eq_trace_covGrad}
+\uses{def:flip}
+For $T\in C^\infty(M;F)$ and $W\in C^\infty(M;E)$,
+\[
+  \ip{T}{A(\nabla W)}=-\ip{\nabla T}{\check A\,W}-\ip{T}{R_A W}.
+\]
+\end{lemma}
+
+\begin{proof}
+In an orthonormal frame, $\operatorname{tr}_{12}\bigl((\mathrm{id}_{T^*M}\otimes\check A)D\bigr)
+=\sum_iA(e_i^\flat\otimes D(e_i,\cdot))=A(D)$ for every $D\in T^*M\otimes T^*M\otimes E$, because
+$\sum_ie_i^\flat\otimes D(e_i,\cdot)=D$. By the Leibniz rule
+$\nabla(\check AW)=(\nabla\check A)W+(\mathrm{id}\otimes\check A)(\nabla W)$, so
+$A(\nabla W)=\operatorname{tr}_{12}\nabla(\check AW)-R_AW$. Finally
+$\operatorname{tr}_{12}\nabla V=\operatorname{div}V$ and $\ip{T}{\operatorname{div}V}=-\ip{\nabla T}{V}$.
+\end{proof}
+
+\begin{lemma}[integration by parts in the principal term]\label{lem:ibp}
+\lean{ShortTime.principal_ibp, ShortTime.principal_iter, ShortTime.evalFirst_flipIter, ShortTime.legendreForm_eq_fiberInner_flipIter}
+\uses{def:legendre, def:sobolev, lem:ibp-one}
+Let $P$ be a smooth section of $\Hom(\otimes^{2p}T^*M\otimes W,W)$ and $\psi\in C^\infty(M;W)$. Then
+\[
+  \ip{\psi}{P(\nabla^{2p}\psi)}=(-1)^p\ip{\nabla^p\psi}{\hatP\,\nabla^p\psi}+\mathcal E(\psi),
+  \qquad
+  \abs{\mathcal E(\psi)}\le C\,N_{p-1}(\psi)\,N_p(\psi),
+\]
+where $C$ depends on $\sup_{a\le p}\abs{\nabla^aP}$ and on the curvature. If $P$ depends smoothly on
+$t\in[0,T]$, then $C$ can be chosen uniformly in $t$.
+\end{lemma}
+
+\begin{proof}
+\uses{lem:ricci-l2}
+Apply Lemma~\ref{lem:ibp-one} $p$ times, each time moving the outermost derivative of
+$\nabla^{2p-j}\psi=\nabla(\nabla^{2p-j-1}\psi)$ onto $\nabla^j\psi$. With $P^{(0)}=P$ and
+$P^{(j+1)}=\check{P^{(j)}}$ this gives
+\[
+  \ip{\psi}{P(\nabla^{2p}\psi)}=(-1)^p\ip{\nabla^p\psi}{P^{(p)}\nabla^p\psi}
+  -\sum_{j<p}(-1)^j\ip{\nabla^j\psi}{R_{P^{(j)}}\nabla^{2p-j-1}\psi}.
+\]
+Unwinding the definition, $P^{(p)}(\xi)(v_1,\dots,v_p,\cdot)=P(v_p^\flat\otimes\dots\otimes v_1^\flat
+\otimes\xi)$. Expanding in an orthonormal frame over the first $p$ slots and reindexing $I$ by its
+reversal gives $\ip{\rho\xi}{P^{(p)}\eta}=\ip{\xi}{\hatP\eta}$ pointwise, where $\rho$ reverses the
+order of the first $p$ slots. Hence
+\[
+  \ip{\nabla^p\psi}{P^{(p)}\nabla^p\psi}=\ip{\nabla^p\psi}{\hatP\,\nabla^p\psi}
+  +\ip{\nabla^p\psi-\rho\nabla^p\psi}{P^{(p)}\nabla^p\psi},
+\]
+and the last term is at most $C\,N_{p-2}(\psi)\norm{\nabla^p\psi}$ by Lemma~\ref{lem:ricci-l2}. (For
+$p=1$, $\rho$ is the identity.)
+
+\emph{The error terms.} Each $R_{P^{(j)}}$ has order zero and involves one derivative of $P$. In the
+term $\ip{\nabla^j\psi}{R\nabla^{2p-j-1}\psi}$ move $p-j-1$ further derivatives from the right to
+the left, again by Lemma~\ref{lem:ibp-one}. This produces pairings of $\nabla^a\psi$ with
+$\nabla^b\psi$, $a\le p$, $b\le p-1$, whose coefficients involve at most $p$ derivatives of $P$.
+Each is at most $C\,N_{p-1}(\psi)N_p(\psi)$.
+\end{proof}
+
+\begin{lemma}[G\aa rding's inequality]\label{lem:garding}
+\lean{ShortTime.LinearOp.garding, ShortTime.LinearOp.garding_top, ShortTime.LinearOp.coercive}
+\uses{def:class, def:sobolev}
+Let $L\in\Lcl(W;T,\lambda,K,\Lambda)$ with $K\ge p$. There is $C=C(n,p,\lambda,\Lambda,M,W)$ such that
+for all $t\in[0,T]$ and all $\psi\in C^\infty(M;W)$
+\[
+  -\ip{\psi}{L(t)\psi}\ge\frac\lambda4\norm\psi_{H^p}^2-C\norm\psi^2 .
+\]
+\end{lemma}
+
+\begin{proof}
+\uses{lem:ibp, lem:interp}
+Write $N_k=N_k(\psi)$ as in Lemma~\ref{lem:interp}.
+
+\emph{The principal term.} By Lemma~\ref{lem:ibp} and the Legendre condition
+$(-1)^{p+1}\ip{\xi}{\hatP\xi}\ge\lambda\abs\xi^2$, applied pointwise to $\xi=\nabla^p\psi$,
+\[
+  -\ip{\psi}{P(\nabla^{2p}\psi)}\ge\lambda\norm{\nabla^p\psi}^2-C N_{p-1}N_p.
+\]
+
+\emph{Lower-order terms of order $k\le p$.} Here
+$\abs{\ip{\psi}{R_k\nabla^k\psi}}\le\Lambda N_{p-1}N_p$.
+
+\emph{Lower-order terms of order $p<k<2p$.} Write $\nabla^k\psi=\nabla^{k-p}(\nabla^p\psi)$ and
+integrate by parts $k-p$ times. This produces terms $\ip{\nabla^b R_k*\nabla^a\psi}{\nabla^p\psi}$
+with $a+b=k-p\le p-1$, which are bounded by $C N_{p-1}N_p$.
+
+\emph{Conclusion.} So $\ip{\psi}{L\psi}\le-\lambda\norm{\nabla^p\psi}^2+C N_{p-1}N_p$. Use
+$N_p\le N_{p-1}+\norm{\nabla^p\psi}$ and $N_{p-1}\le\delta\norm{\nabla^p\psi}+C_\delta\norm\psi$ from
+Lemma~\ref{lem:interp} with $\delta$ small, and absorb:
+$\ip{\psi}{L\psi}+\frac\lambda2\norm{\nabla^p\psi}^2\le C\norm\psi^2$. Finally
+$\norm\psi_{H^p}^2\le2\norm{\nabla^p\psi}^2+C\norm\psi^2$.
+\end{proof}
+
+\subsection{Energy estimates}
+
+For $r\in\N$ let $W_r=\otimes^rT^*M\otimes V$, so that $W_0=V$ and $W_{r+1}=T^*M\otimes W_r$.
+
+\begin{lemma}[differentiating an operator]\label{lem:commute}
+\lean{ShortTime.LinearOp.exists_covGrad_comm, ShortTime.LinearOp.isParabolic_comm, ShortTime.LinearOp.legendreForm_comm, ShortTime.isDiffOp_cycle_defect, ShortTime.IsDiffOp.split}
+\uses{def:class}
+Let $L\in\Lcl(W_r;T,\lambda,K,\Lambda)$ with $K\ge1$. There are an operator
+$\tilde L\in\Lcl(W_{r+1};T,\lambda,K-1,\tilde\Lambda)$ and a smooth
+$S_0\in\Gamma(\Hom(W_r,W_{r+1}))$, depending on $t$, with
+\[
+  \nabla(Lu)=\tilde L(\nabla u)+S_0u\qquad\text{for all }u.
+\]
+The constant $\tilde\Lambda$ and the $C^{K-1}$-norm of $S_0$ are bounded in terms of $\Lambda$, $r$
+and the geometry.
+\end{lemma}
+
+\begin{proof}
+\uses{lem:ricci, lem:legendre-basic}
+\emph{The new principal coefficient.} Let $P^{(1)}\colon\otimes^{2p}T^*M\otimes W_{r+1}\to W_{r+1}$
+act by $P$ on the $2p$ form slots and on the $W_r$ factor, leaving the extra $T^*M$ factor untouched.
+The first slot of $\nabla u\in\Gamma(T^*M\otimes W_r)$ is the derivative slot, and
+$\nabla^{2p}(\nabla u)=\nabla^{2p+1}u$.
+
+\emph{Comparing the two expressions.} By the Leibniz rule,
+\[
+  \nabla\bigl(P(\nabla^{2p}u)\bigr)=(\nabla P)(\nabla^{2p}u)+P_\bullet(\nabla^{2p+1}u),
+\]
+where $P_\bullet$ applies $P$ to slots $2,\dots,2p+1$. Moving the first slot to position $2p+1$ is a cyclic
+permutation $\gamma$, so by Lemma~\ref{lem:ricci}
+\[
+  P_\bullet(\nabla^{2p+1}u)=P^{(1)}\bigl(\nabla^{2p}(\nabla u)\bigr)+P^{(1)}(Q_\gamma u),\qquad
+  Q_\gamma\in\Diff^{2p-1}.
+\]
+Everything else, including $\nabla(R_k\nabla^ku)$, lies in $\Diff^{2p}(W_r,W_{r+1})$.
+
+\emph{Rewriting in terms of $\nabla u$.} Every $A\in\Diff^{2p}(W_r,W_{r+1})$ can be written as
+$Au=A_0u+A'(\nabla u)$ with $A'\in\Diff^{2p-1}(W_{r+1},W_{r+1})$, since
+$\nabla^ku=\nabla^{k-1}(\nabla u)$. Set $\tilde L=P^{(1)}\nabla^{2p}+A'$ and $S_0=A_0$.
+
+\emph{The Legendre condition.} Decompose $\xi\in\otimes^pT^*M\otimes W_{r+1}$ as
+$\xi=\sum_c\xi^{(c)}\otimes e^c$ along the extra factor. Then
+$\ip{\xi}{\widehat{P^{(1)}}\xi}=\sum_c\ip{\xi^{(c)}}{\hatP\xi^{(c)}}$, so
+$\kappa(P^{(1)})\ge\kappa(P)\ge\lambda$.
+\end{proof}
+
+\begin{proposition}[energy estimates]\label{prop:energy}
+\lean{ShortTime.energy_estimate, ShortTime.LinearOp.energy_estimate_zero_of_garding, ShortTime.LinearOp.garding_lerp, ShortTime.hasDerivWithinAt_covGrad, ShortTime.energy_ode}
+\uses{def:class, def:sobolev}
+Let $K_k=p+k$. For every $k\in\N$ and $r\in\N$, every $L\in\Lcl(W_r;T,\lambda,K_k,\Lambda)$, and every
+$u\in C^\infty(M\times[0,T];W_r)$ with $u(\cdot,0)=0$, set $f=\partial_tu-Lu$. Then
+\begin{equation}\label{eq:Ek}
+  \max_{t\in[0,T]}\norm{u(t)}_{H^k}^2+\int_0^T\norm{u}_{H^{k+p}}^2dt\le C\int_0^T\norm{f}_{H^{k-p}}^2dt,
+\end{equation}
+with $C=C(k,r,n,p,\lambda,\Lambda,T_0,M,V)$.
+\end{proposition}
+
+\begin{proof}
+\uses{lem:garding, lem:commute, lem:sobolev-basic, fact:gronwall}
+We argue by induction on $k$, for all $r$ simultaneously.
+
+\emph{Base case $k=0$.} By Lemma~\ref{lem:garding} and
+Lemma~\ref{lem:sobolev-basic}(ii),
+\begin{align*}
+\frac{d}{dt}\norm u^2&=2\ip u{Lu}+2\ip uf
+\le-\frac\lambda2\norm u_{H^p}^2+2C\norm u^2+2\norm u_{H^p}\norm f_{H^{-p}}\\
+&\le-\frac\lambda4\norm u_{H^p}^2+2C\norm u^2+\frac4\lambda\norm f_{H^{-p}}^2 .
+\end{align*}
+Since $u(0)=0$, Gronwall's inequality gives
+$\max_t\norm{u(t)}^2\le\frac4\lambda e^{2CT_0}\int_0^T\norm f_{H^{-p}}^2$. Integrating the differential
+inequality over $[0,T]$ then bounds $\int_0^T\norm u_{H^p}^2$.
+
+\emph{Induction step from $k$ to $k+1$.} Let $L\in\Lcl(W_r;T,\lambda,K_{k+1},\Lambda)$ and $w=\nabla u$,
+so that $w(\cdot,0)=0$. By Lemma~\ref{lem:commute},
+\[
+  \partial_tw=\tilde Lw+S_0u+\nabla f,\qquad\tilde L\in\Lcl(W_{r+1};T,\lambda,K_k,\tilde\Lambda).
+\]
+Applying the induction hypothesis to $w$, followed by Lemma~\ref{lem:sobolev-basic}(iii)--(iv), gives
+\[
+  \max_t\norm{w}_{H^k}^2+\int_0^T\norm w_{H^{k+p}}^2
+  \le C\int_0^T\Bigl(\norm u^2_{H^{\max(k-p,0)}}+\norm f_{H^{k+1-p}}^2\Bigr).
+\]
+Next,
+\[
+  \int_0^T\norm u^2_{H^{\max(k-p,0)}}\le T_0\max_t\norm u_{H^k}^2
+  \le C\int_0^T\norm f_{H^{k-p}}^2\le C\int_0^T\norm f^2_{H^{k+1-p}},
+\]
+using the induction hypothesis for $u$ (valid because $K_{k+1}\ge K_k$) and the monotonicity in
+Lemma~\ref{lem:sobolev-basic}(ii). Finally
+$\norm u_{H^{k+1}}^2=\norm u^2+\norm w_{H^k}^2$ and
+$\norm u_{H^{k+1+p}}^2=\norm u^2+\norm w_{H^{k+p}}^2$ by Lemma~\ref{lem:sobolev-basic}(i). Combined
+with the case $k=0$, this gives \eqref{eq:Ek} for $k+1$.
+\end{proof}
+
+\begin{remark}[uniformity in the formalization]
+In the formalization the constant is not tracked through the class $\Lcl$. Instead,
+Proposition~\ref{prop:energy} is proved, by the same induction, for all operators
+$L_\theta=(1-\theta)L_0+\theta L_1$, $\theta\in[0,1]$, on the segment between two operators $L_0,L_1$ that
+are parabolic with the same constant $\lambda$, with one constant $C$ for the whole segment. This is
+the uniformity used in the proof of Theorem~\ref{thm:linear}. The base case needs G\aa rding's inequality
+uniformly in $\theta$; it holds because $\ip u{L_\theta u}$ is affine in $\theta$. In the induction step,
+Lemma~\ref{lem:commute} is applied to $L_0$ and $L_1$ separately, and $\tilde L_\theta=(1-\theta)\tilde L_0+\theta\tilde L_1$.
+The identity $\partial_t\nabla u=\nabla\partial_tu$ for smooth families is proved weakly, by pairing with test
+fields and integrating by parts. Proposition~\ref{prop:apriori} is proved in the same form,
+uniformly along such segments.
+\end{remark}
+
+\begin{remark}
+Negative-order norms enter only through the forcing term. They let the induction start at $k=0$ and
+reach the ``maximal regularity'' level $k=p$ by differentiation alone. No separate argument is needed
+for the second-order-in-time energy.
+\end{remark}
+
+\begin{proposition}[a priori estimate]\label{prop:apriori}
+\lean{ShortTime.apriori_estimate, ShortTime.parabolicInner_self_eq, ShortTime.LinearOp.exists_sobolevNormSq_timeDerivIter_apply_le, ShortTime.timeDerivIter_iteratedCovGrad}
+\uses{def:class, def:parabolic}
+Let $m\ge1$ and $L\in\Lcl(V;T,\lambda,K,\Lambda)$ with $K\ge(2p+1)m$. Then
+\[
+  \norm u_{\Pp^m}\le C\norm{(\partial_t-L)u}_{\Pp^{m-1}}\qquad\text{for all }u\in\Pp^m_0(V),
+\]
+with $C=C(m,n,p,\lambda,\Lambda,T_0,M,V)$.
+\end{proposition}
+
+\begin{proof}
+\uses{prop:energy, lem:parabolic-basic, lem:sobolev-basic}
+By density and Lemma~\ref{lem:parabolic-basic}(iii) it suffices to treat smooth $u$ with $u(0)=0$. Let
+$f=\partial_tu-Lu$.
+
+\emph{Top spatial regularity.} Proposition~\ref{prop:energy} with $k=2pm-p$ gives
+\[
+  \int_0^T\norm u^2_{H^{2pm}}\le C\int_0^T\norm f^2_{H^{2p(m-1)}}\le C\norm f_{\Pp^{m-1}}^2 .
+\]
+
+\emph{Time derivatives.} For $1\le j\le m$ we have
+\[
+  \partial_t^ju=\sum_{a=0}^{j-1}\binom{j-1}{a}(\partial_t^aL)(\partial_t^{j-1-a}u)+\partial_t^{j-1}f,
+\]
+where $\partial_t^aL$ has the $\partial_t^a$-differentiated coefficients. Set $b=j-1-a\le j-1$. By
+Lemma~\ref{lem:sobolev-basic}(iv),
+\[
+  \norm{(\partial_t^aL)\partial_t^bu}_{H^{2p(m-j)}}\le C\norm{\partial_t^bu}_{H^{2p(m-j)+2p}}
+  \le C\norm{\partial_t^bu}_{H^{2p(m-b)}} .
+\]
+Induction on $j$ therefore bounds $\int_0^T\norm{\partial_t^ju}_{H^{2p(m-j)}}^2$ by
+$C\norm f_{\Pp^{m-1}}^2$.
+\end{proof}
+
+\subsection{The model operator}
+
+\begin{proposition}\label{prop:model}
+\lean{ShortTime.LinearOp.exists_model, ShortTime.exists_polyharmonic, ShortTime.LinearOp.exists_solution_proj, ShortTime.LinearOp.approx_of_eigen, ShortTime.tendsto_integral_proj_sub, ShortTime.LinearOp.surjective_heatExt_of_approx}
+\uses{def:class, def:parabolic}
+The operator $L_0=-(\Lap)^p$ on $V$ belongs to $\Lcl(V;T,1,K,\Lambda_0(K))$ for every $K$. For every
+$m\ge1$, the map $\partial_t-L_0\colon\Pp^m_0(V)\to\Pp^{m-1}(V)$ is surjective.
+\end{proposition}
+
+\begin{proof}
+\uses{lem:legendre-examples, fact:eigen, fact:elliptic, prop:apriori}
+\emph{Membership in the class.} This is Lemma~\ref{lem:legendre-examples}(b).
+
+\emph{Solving mode by mode.} Let $f\in C^\infty(M\times[0,T];V)$ and $f_i(t)=\ip{f(\cdot,t)}{\varphi_i}$,
+with $\varphi_i$ as in Fact~\ref{fact:eigen}. Set
+\[
+  c_i(t)=\int_0^te^{-\mu_i^p(t-\tau)}f_i(\tau)\,d\tau .
+\]
+Then $c_i$ is smooth, $c_i(0)=0$ and $c_i'=-\mu_i^pc_i+f_i$. Hence $u_N=\sum_{i\le N}c_i\varphi_i$ is
+smooth, $u_N(0)=0$, and $(\partial_t-L_0)u_N=\Pi_Nf$.
+
+\emph{Density.} We claim that $\Pi_Nf\to f$ in $\Pp^{m-1}$. Indeed $\partial_t^j\Pi_Nf=\Pi_N\partial_t^jf$, and for a
+smooth section $h$ of $V$, Fact~\ref{fact:elliptic} gives
+\[
+  \norm{h-\Pi_Nh}_{H^{2k}}^2\le C\sum_{i>N}(1+\mu_i)^{2k}\ip{h}{\varphi_i}^2 .
+\]
+The right-hand side tends to $0$ and is bounded by $C\norm h_{H^{2k}}^2$. Apply this with
+$h=\partial_t^jf(\cdot,t)$ and use dominated convergence in $t$. Since $(\partial_t-L_0)u_N=\Pi_Nf$
+with $u_N$ smooth and $u_N(0)=0$, and smooth sections are dense in $\Pp^{m-1}$, the range of
+$\partial_t-L_0\colon\Pp^m_0\to\Pp^{m-1}$ is dense.
+
+\emph{Surjectivity.} By Proposition~\ref{prop:apriori}, $\norm u_{\Pp^m}\le C\norm{(\partial_t-L_0)u}_{\Pp^{m-1}}$
+on $\Pp^m_0$, which is complete, so the range is closed. Hence it is all of $\Pp^{m-1}$.
+\end{proof}
+
+\subsection{The method of continuity and the linear theorem}
+
+\begin{lemma}[method of continuity {\cite[Thm.~5.2]{GT}}]\label{lem:continuity}
+\lean{ShortTime.surjective_of_continuity}
+Let $X$ be a Banach space, $Y$ a normed space and $T_0,T_1\in\mathcal B(X,Y)$. Put
+$T_s=(1-s)T_0+sT_1$, and suppose that $\norm x\le C\norm{T_sx}$ for all $s\in[0,1]$ and $x\in X$. If
+$T_0$ is surjective, then so is $T_1$.
+\end{lemma}
+
+\begin{proof}
+Suppose $T_\sigma$ is surjective. By the hypothesis it is then invertible, with
+$\norm{T_\sigma^{-1}}\le C$. For $\abs{s-\sigma}<\bigl(C(\norm{T_0}+\norm{T_1})\bigr)^{-1}$, the
+equation $T_sx=y$ is equivalent to the fixed-point problem
+\[
+  x=T_\sigma^{-1}y-(s-\sigma)T_\sigma^{-1}(T_1-T_0)x,
+\]
+whose right-hand side is a contraction. Hence $T_s$ is surjective. Steps of this fixed length cover
+$[0,1]$.
+\end{proof}
+
+\begin{theorem}[linear parabolic theory]\label{thm:linear}
+\lean{ShortTime.LinearOp.exists_smooth, ShortTime.LinearOp.unique_of_isParabolic, ShortTime.LinearOp.isomorphism, ShortTime.LinearOp.isomorphism_of_base, ShortTime.LinearOp.heatExt, ShortTime.LinearOp.norm_le_heatExt_lerp, ShortTime.LinearOp.exists_approx, ShortTime.LinearOp.exists_smooth_zero}
+\uses{def:class, def:parabolic}
+Let $m\ge1$ and $L\in\Lcl(V;T,\lambda,K,\Lambda)$ with $K\ge(2p+1)m$.
+\begin{enumerate}[label=(\roman*),nosep]
+\item The map $\partial_t-L\colon\Pp^m_0(V)\to\Pp^{m-1}(V)$ is a linear homeomorphism.
+\item Suppose $L$ has smooth coefficients and let $f\in C^\infty(M\times[0,T];V)$ and
+  $u_0\in C^\infty(M;V)$. Then there is exactly one $u\in C^\infty(M\times[0,T];V)$ with
+  $\partial_tu=Lu+f$ and $u(0)=u_0$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+\uses{prop:model, prop:apriori, lem:continuity, lem:legendre-basic, lem:embedding, lem:garding}
+(i) Let $L_s=(1-s)L_0+sL$. By Lemma~\ref{lem:legendre-basic}(i),
+$L_s\in\Lcl(V;T,\min(1,\lambda),K,\max(\Lambda_0,\Lambda))$ for all $s\in[0,1]$, so
+Proposition~\ref{prop:apriori} holds uniformly in $s$. Lemma~\ref{lem:continuity} and
+Proposition~\ref{prop:model} give surjectivity. Injectivity and continuity of the inverse follow from
+Proposition~\ref{prop:apriori}.
+
+(ii) Put $v=u-u_0$, with $u_0$ constant in time. We must find a smooth $v$ with $v(0)=0$ and
+$(\partial_t-L)v=h$, where $h=f+Lu_0$ is smooth.
+\begin{itemize}[nosep]
+\item For each $k$, (i) at level $m=k+1$ gives $V\in\Pp^{k+1}_0$ with $(\partial_t-L)V=h$. Approximating
+  $V$ by smooth families vanishing at $t=0$ gives a smooth $v_k$ with $v_k(0)=0$ and
+  $\norm{(\partial_t-L)v_k-h}^2_{\Pp^k}<1/(k+1)$.
+\item By Proposition~\ref{prop:apriori} at level $q+1$, for $k,k'\ge q$,
+  $\norm{v_k-v_{k'}}^2_{\Pp^{q+1}}\le C\norm{(\partial_t-L)(v_k-v_{k'})}^2_{\Pp^q}
+  \le 2C\bigl(\tfrac1{k+1}+\tfrac1{k'+1}\bigr)$. So $(v_k)$ is Cauchy in every $\Pp^q$.
+\item By Lemma~\ref{lem:embedding}, $v_k$ converges with all derivatives $\partial_t^j\nabla^i$,
+  uniformly, to a smooth $v$ with $v(0)=0$. Likewise $(\partial_t-L)v_k\to h$ uniformly.
+\item Passing to the limit in $\partial_tv_k=Lv_k+(\partial_t-L)v_k$ gives $\partial_tv=Lv+h$.
+\end{itemize}
+For uniqueness, the difference $w$ of two smooth solutions is smooth, vanishes at $t=0$ and solves
+$\partial_tw=Lw$. By Lemma~\ref{lem:garding},
+$\frac{d}{dt}\norm{w}^2=2\ip{w}{Lw}\le2C\norm w^2$, so $w=0$ by Gr\"onwall's inequality. (Alternatively,
+$w\in\Pp^m_0$ is zero by (i).)
+\end{proof}
+
+% ===========================================================================
+\section{The nonlinear theory}\label{sec:nonlinear}
+% ===========================================================================
+
+Throughout this section $F$, $\Dom$ and $\Par$ are as in Section~\ref{sec:setting}, and $m\ge m_0$ is
+fixed.
+
+\subsection{Approximate solutions}
+
+\begin{lemma}[formal solution]\label{lem:formal}
+\lean{ShortTime.EquationData.formalCoeff, ShortTime.EquationData.formalCoeff_spec, ShortTime.EquationData.formalCoeff_spec', ShortTime.EquationData.formalPoly, ShortTime.EquationData.timeDerivIter_formalPoly, ShortTime.EquationData.exists_formalPoly_dom, ShortTime.EquationData.timeDerivIter_nonlinFamily_congr}
+\uses{def:data}
+Let $u_0\in C^\infty(M;V)$ with $(0,j^{2p}u_0(x))\in\Dom$ for all $x$. There are sections
+$a_0=u_0,a_1,a_2,\ldots\in C^\infty(M;V)$ with the following property. Let $N\ge1$, $T'>0$, and let
+$w$ be a smooth section on $M\times[0,T']$ with jets in $\Dom$ and $\partial_t^\ell w(0)=a_\ell$ for
+$\ell\le N$. Then
+\[
+  \partial_t^\ell\big|_{t=0}\bigl(\partial_tw-F[w]\bigr)=0\qquad\text{for }0\le\ell\le N-1 .
+\]
+\end{lemma}
+
+\begin{proof}
+Since $\partial_t$ commutes with $\nabla$, we have $\partial_t^i j^{2p}w=j^{2p}\partial_t^iw$. By the
+chain rule there are smooth fibre maps $\Phi_\ell$, determined by $F$ and its derivatives at $t=0$,
+such that
+\[
+  \partial_t^\ell\big|_{t=0}F[w]=\Phi_\ell\bigl(j^{2p}a_0,\dots,j^{2p}a_\ell\bigr)
+\]
+for every such $w$: by the chain rule (Fa\`a di Bruno), $\partial_t^\ell|_{t=0}F[w]$ depends only on
+$\partial_t^iw(0)$, $i\le\ell$. Define recursively $a_{\ell+1}=\partial_t^\ell|_{t=0}F[w_\ell]$ with
+$w_\ell=\sum_{i\le\ell}a_it^i/i!$, taken on a short interval on which the jets of $w_\ell$ lie in $\Dom$;
+such an interval exists since $\Dom$ is open and $M$ is compact, and one-sided derivatives at $t=0$ do
+not depend on the interval. Then
+$\partial_t^\ell\partial_tw(0)=a_{\ell+1}=\partial_t^\ell F[w](0)$ whenever $\ell+1\le N$.
+\end{proof}
+
+\begin{lemma}[cutoff]\label{lem:cutoff}
+\lean{ShortTime.ParabolicSpace.tendsto_cutoff, ShortTime.cutoffFamily, ShortTime.jointlySmoothOn_cutoffFamily, ShortTime.cutoffFamily_eq_zero, ShortTime.tendsto_parabolicInner_cutoff}
+\uses{def:parabolic}
+Let $f\in C^\infty(M\times[0,T];V)$ with $\partial_t^\ell f(\cdot,0)=0$ for $\ell\le N-1$. Let
+$\chi\in C^\infty(\R)$ with $\chi=0$ on $(-\infty,1]$ and $\chi=1$ on $[2,\infty)$, and set
+$f_\varepsilon(x,t)=\chi(t/\varepsilon)f(x,t)$. Then $f_\varepsilon$ is smooth, vanishes for
+$t\le\varepsilon$, and $f_\varepsilon\to f$ in $\Pp^{m'}$ as $\varepsilon\to0$, for every $m'\le N$.
+\end{lemma}
+
+\begin{proof}
+\emph{A pointwise bound.} By Taylor's theorem, $\abs{\partial_t^l\nabla^if(x,t)}\le C_it^{N-l}$ for
+$l\le N$.
+
+\emph{Expanding the difference.} We have
+\[
+  \partial_t^j\nabla^i(f-f_\varepsilon)
+  =\sum_{q\le j}\binom jq\,\partial_t^q\bigl(1-\chi(t/\varepsilon)\bigr)\,\partial_t^{j-q}\nabla^if,
+\]
+which is supported in $t\le2\varepsilon$.
+\begin{itemize}[nosep]
+\item The terms with $q\ge1$ are bounded by
+  $C\varepsilon^{-q}(2\varepsilon)^{N-j+q}=C\varepsilon^{N-j}$, which is at most $C$ for $j\le N$.
+\item The term with $q=0$ is bounded.
+\end{itemize}
+Since the support has measure $O(\varepsilon)$, all $L^2$ norms are $O(\varepsilon^{1/2})$.
+\end{proof}
+
+\subsection{Existence}\label{sec:existence}
+
+Let $u_0$ satisfy the hypothesis of Theorem~\ref{thm:A}. Take the sections $a_\ell$ of
+Lemma~\ref{lem:formal} and set
+\[
+  w(x,t)=\sum_{\ell\le m}a_\ell(x)\frac{t^\ell}{\ell!}.
+\]
+Then $j^{2p}w(\cdot,0)=j^{2p}u_0$. By Lemma~\ref{lem:legendre-basic}(iii) and continuity there are
+$T_1\in(0,T_0]$ and $\lambda_1>0$ such that $w$ has jets in $\Par$ on $[0,T_1]$ and
+$\kappa(D_{2p}F(t,j^{2p}w))\ge\lambda_1$ there. Let $\delta_1>0$ be such that the $\delta_1$-tube
+(in the sense of Lemma~\ref{lem:legendre-basic}(iii)) around the compact set
+$K_w=\{(t,j^{2p}w(x,t))\}$ is contained in $\Par$.
+
+From now on $T=T_1$ in all function spaces. Set $f=\partial_tw-F[w]$; it is smooth, and
+$\partial_t^\ell f(0)=0$ for $\ell\le m-1$ by Lemma~\ref{lem:formal}. Define
+\[
+  G(v)=\partial_t(w+v)-F[w+v]\qquad\text{on}\qquad\mathcal U=\{v\in\Pp^m_0:\ w+v\in\Pp^m_\Dom\}.
+\]
+By Corollary~\ref{cor:N}, $G$ is $C^\infty$ from $\mathcal U$ to $\Pp^{m-1}$, with $G(0)=f$ and
+$DG(0)=\partial_t-L_w$. The linearization $L_w$ has smooth coefficients and belongs to
+$\Lcl(V;T,\lambda_1,K,\Lambda_K)$ for every $K$. By Theorem~\ref{thm:linear}, $DG(0)$ is an
+isomorphism $\Pp^m_0\to\Pp^{m-1}$.
+
+\begin{proposition}\label{prop:existence}
+\lean{ShortTime.EquationData.exists_parabolicSpace_solution, ShortTime.exists_injOn_and_image_mem_nhds, ShortTime.ParabolicSpace.timeDerivExt, ShortTime.ParabolicSpace.existenceMap, ShortTime.LinearOp.isomorphism_eq_heatExt, ShortTime.EquationData.exists_legendre_interval}
+\uses{def:data, def:parabolic, def:legendre}
+There are $\varepsilon>0$ and $v\in\Pp^m_0$ with the following properties:
+\begin{itemize}[nosep]
+\item $u=w+v$ has continuous jets lying in $\Par$ for $t\le\varepsilon$;
+\item $\partial_tu=F[u]$ on $M\times[0,\varepsilon]$;
+\item $u(\cdot,0)=u_0$.
+\end{itemize}
+Moreover, $v=\Psi(0,f_\varepsilon)$, where $\Psi$ is the map of Proposition~\ref{prop:regularity}
+below, taken at the parameter value $0$.
+\end{proposition}
+
+\begin{proof}
+\uses{lem:formal, lem:cutoff, cor:N, thm:linear, fact:ift, lem:embedding, lem:parabolic-basic, lem:legendre-basic}
+\emph{Inverting $G$.} By the inverse function theorem (Fact~\ref{fact:ift}), $G$ restricts to a
+$C^\infty$ diffeomorphism from an open $\mathcal U'\ni0$ onto an open $\mathcal V'\ni f$. Shrink
+$\mathcal U'$ so that $\sup\abs{j^{2p}v}<\delta_1$ for $v\in\mathcal U'$; this is possible by
+Lemma~\ref{lem:embedding}, since $m-1\ge N_0$. By Lemma~\ref{lem:cutoff} with $N=m$ and $m'=m-1$,
+$f_\varepsilon\in\mathcal V'$ for $\varepsilon$ small. Put $v=(G|_{\mathcal U'})^{-1}(f_\varepsilon)$.
+
+\emph{The equation on $[0,\varepsilon]$.} Since $f_\varepsilon=0$ for $t\le\varepsilon$, we get
+$\partial_tu=F[u]$ almost everywhere on $M\times[0,\varepsilon]$. Both sides are continuous by
+Lemma~\ref{lem:embedding}, so equality holds everywhere.
+
+\emph{Initial value and parabolicity.} $u(0)=w(0)=u_0$ by Lemma~\ref{lem:parabolic-basic}(v). The jets
+of $u$ lie within $\delta_1$ of those of $w$, hence in $\Par$.
+\end{proof}
+
+\subsection{Regularity by Angenent's trick}\label{sec:regularity}
+
+The solution of Proposition~\ref{prop:existence} is only known to lie in $\Pp^m$. We now show that it
+is smooth. The idea is to transport it by flows of diffeomorphisms: the transported section solves a
+transported equation that depends smoothly on the flow parameter, and the implicit function theorem at
+the smooth point $w$ turns this into smooth dependence on the parameter.
+
+\paragraph{Horizontal flows} Let $X$ be a smooth vector field on $M$ with flow $\phi_s$. Parallel
+transport along the curves $s\mapsto\phi_s(x)$ defines a one-parameter group $\tilde\phi_s$ of bundle
+isometries of $V$ covering $\phi_s$. The pull-back of a section is
+\[
+  (\tilde\phi_s^*u)(x)=\tilde\phi_s^{-1}\bigl(u(\phi_s(x))\bigr),
+\]
+and it acts on time-dependent sections slice by slice. Given vector fields $X_1,\dots,X_d$, set
+$\tilde\phi_s=\tilde\phi^{X_1}_{s_1}\circ\cdots\circ\tilde\phi^{X_d}_{s_d}$ for $s\in\R^d$.
+
+\begin{lemma}\label{lem:flows}
+\lean{ShortTime.HFlow.hpull, ShortTime.HFlow.contMDiffOn_hpullFib, ShortTime.HFlow.jointlySmoothOn_hpull, ShortTime.HFlow.hasDerivAt_hpull_zero, ShortTime.HFlow.hpull_hpull, ShortTime.HFlow.exists_jet_bound_hpull, ShortTime.HFlow.exists_jetTransport, ShortTime.HFlow.natFibreMap, ShortTime.HFlow.natFibreMap_F_zero, ShortTime.HFlow.hpull_nonlinFamily, ShortTime.HFlow.natParam, ShortTime.HFlow.hpull_fibreApply, ShortTime.HFlow.iterPull, ShortTime.HFlow.iterFM, ShortTime.HFlow.iterPull_nonlinFamily, ShortTime.HFlow.iterFlow_chart_patch, ShortTime.HFlow.exists_parabolicInner_hpull_le, ShortTime.HFlow.hpullExt, ShortTime.HFlow.hpullExt_mem_zeroAtStart, ShortTime.HFlow.contDiff_hpullExt_ofSmooth, ShortTime.HFlow.continuous_hpullExt_apply, ShortTime.HFlow.hpullExt_comp_timeDerivExt}
+\uses{def:data, def:parabolic, fact:weak}
+\begin{enumerate}[label=(\alph*),nosep]
+\item For smooth $u$, the map $s\mapsto\tilde\phi_s^*u$ is $C^\infty$ into $\Pp^{m'}$ for every $m'$,
+  and
+  \[
+    \partial_{s_1}\cdots\partial_{s_d}\big|_{s=0}\tilde\phi_s^*u=\nabla_{X_d}\cdots\nabla_{X_1}u .
+  \]
+\item For $\abs s\le1$ the operators $\tilde\phi_s^*$ are uniformly bounded on $\Pp^{m'}$ and preserve
+  $\Pp^{m'}_0$. For every $u\in\Pp^{m'}$ the map $s\mapsto\tilde\phi_s^*u$ is continuous into
+  $\Pp^{m'}$.
+\item Suppose $u\in\Pp^{m'}$ and $s\mapsto\tilde\phi_s^*u$ is $C^d$ into $\Pp^{m'}$ near $0$. Then the
+  weak derivative $\nabla_{X_d}\cdots\nabla_{X_1}u$ exists and equals
+  $\partial_{s_1}\cdots\partial_{s_d}|_{0}\tilde\phi_s^*u$, and hence lies in $\Pp^{m'}$.
+\item \emph{Naturality.} There are an open set $S\ni0$ and smooth maps $F_s\colon\Dom_s\to V$ for
+  $s\in S$, jointly smooth in $(s,t,\zeta)$ on an open set, with $F_0=F$ and $\Dom_0=\Dom$, such that
+  \[
+    \tilde\phi_s^*\bigl(F[u]\bigr)=F_s\bigl[\tilde\phi_s^*u\bigr]
+  \]
+  for every smooth $u$ with jets in $\Dom$. Here $F_s[\cdot]$ is formed with the jets of
+  $\tilde\phi_s^*u$. Both sides are continuous in $u$ from $\Pp^m_\Dom$ to $\Pp^{m-1}$, and smooth
+  sections are dense in $\Pp^m_\Dom$, so the identity extends to all $u\in\Pp^m_\Dom$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+(a) The derivative of the pull-back by parallel transport along the flow lines of $X$ is $\nabla_X$.
+Joint smoothness is standard ODE theory.
+
+(b) Use the chain rule and a change of variables, and approximate by smooth sections.
+
+(c) Pair with a smooth test section $\psi$:
+$\ip{\tilde\phi_s^*u}{\psi}=\ip{u}{(\tilde\phi_s^*)^\dagger\psi}$, where
+$(\tilde\phi_s^*)^\dagger\psi$ is smooth in $s$. Differentiate at $s=0$ using (a).
+
+(d) Pulling back by $\tilde\phi_s$ intertwines $\nabla$ with the pulled-back connections, and these
+differ from $\nabla$ by tensors that depend smoothly on $s$ and vanish at $s=0$. Hence, in a chart,
+the jets of $\tilde\phi_s^*u$ are obtained from those of $u$ by a recursion with smooth coefficients.
+Covariant jets of sections are not arbitrary (the antisymmetric part of $\nabla^2u$ is a curvature
+term), so instead of inverting this jet map we use it in the other direction: there is a smooth family
+of fibrewise linear maps $\Upsilon_s(x)\colon\Jet^{2p}_xV\to\Jet^{2p}_{\phi_s(x)}V$, $\Upsilon_0=\id$,
+with $\Upsilon_s(x)\bigl(j^{2p}v(x)\bigr)=j^{2p}(\tilde\phi_{-s}^*v)(\phi_s x)$ for all smooth $v$ and
+$|s|$ small (glue the chart recursions with a partition of unity). Set
+$F_s(t,x,\zeta)=\tilde\phi_s(x)^{-1}F\bigl(t,\phi_s x,\Upsilon_s(x)\zeta\bigr)$, and let $\Dom_s$ be the
+corresponding preimage of $\Dom$. Naturality follows from $\tilde\phi_{-s}^*\tilde\phi_s^*=\id$.
+\end{proof}
+
+\begin{proposition}[regularity]\label{prop:regularity}
+\lean{ShortTime.EquationData.parabolicSpace_solution_smooth, ShortTime.SmoothRep.exists_smooth_rep, ShortTime.SmoothRep.exists_spatialSmooth, ShortTime.SpatialReg.contDiffOn_of_evolution, ShortTime.SmoothRep.evalJet_iterPullExt, ShortTime.Angenent.exists_contDiffAt_of_natural, ShortTime.HFlow.contDiff_iterPullExt_ofSmooth, ShortTime.EquationData.regularity_of_time, ShortTime.EquationData.smoothRep_time, ShortTime.EquationData.exists_iterPull_contDiffOn, ShortTime.Angenent.regularity_core}
+\uses{prop:existence, def:solution}
+The solution $u$ of Proposition~\ref{prop:existence} is smooth on $M\times[0,\varepsilon]$.
+\end{proposition}
+
+\begin{proof}
+\uses{lem:flows, fact:ift, fact:weak, lem:spatial-nemytskii, cor:N, fact:sobolev, lem:parabolic-basic}
+\emph{Step 1: setting up the implicit function theorem.} Fix smooth vector fields $Y_1,\dots,Y_q$
+spanning $TM$ at every point, a length $d\ge1$ and a word $X_1,\dots,X_d$ in the $Y$'s. Near
+$(0,0)\in\R^d\times\Pp^m_0$ consider
+\[
+  H(s,v)=\partial_t\bigl(\tilde\phi_s^*w+v\bigr)-F_s\bigl[\tilde\phi_s^*w+v\bigr]\in\Pp^{m-1}.
+\]
+By Lemma~\ref{lem:flows}(a),(d) and Corollary~\ref{cor:N}, $H$ is $C^\infty$. Moreover $H(0,\cdot)=G$
+and $D_vH(0,0)=DG(0)$ is an isomorphism. By the implicit function theorem (Fact~\ref{fact:ift}) there
+are neighbourhoods $S'\times\mathcal V'$ of $(0,f)$ and $\mathcal U''$ of $0$, and a $C^\infty$ map
+$\Psi\colon S'\times\mathcal V'\to\mathcal U''$, such that for $(s,y)\in S'\times\mathcal V'$ and
+$v\in\mathcal U''$
+\[
+  H(s,v)=y\iff v=\Psi(s,y).
+\]
+We choose $\varepsilon$ in Proposition~\ref{prop:existence} so small that
+$f_\varepsilon\in\mathcal V'$, and take $v=\Psi(0,f_\varepsilon)$ there. This is consistent with the
+proof of that proposition, after shrinking $\mathcal U'$ to lie in $\mathcal U''$.
+
+\emph{Step 2: smooth dependence on the flow parameter.} By Lemma~\ref{lem:flows}(d),
+$H(s,\tilde\phi_s^*v)=\tilde\phi_s^*f_\varepsilon$. By Lemma~\ref{lem:flows}(a),(b), for $s$ near $0$
+we have $\tilde\phi_s^*v\in\mathcal U''$ and $\tilde\phi_s^*f_\varepsilon\in\mathcal V'$. Therefore
+\[
+  \tilde\phi_s^*v=\Psi\bigl(s,\tilde\phi_s^*f_\varepsilon\bigr).
+\]
+The right-hand side is $C^\infty$ in $s$, because $f_\varepsilon$ is smooth. By
+Lemma~\ref{lem:flows}(c), $\nabla_{X_d}\cdots\nabla_{X_1}v\in\Pp^m$. Since the word was arbitrary and
+$w$ is smooth, Fact~\ref{fact:weak} gives $\partial_t^ju\in L^2(0,\varepsilon;H^k)$ for all $k$ and all
+$j\le m$.
+
+\emph{Step 3: regularity in time.} By Lemma~\ref{lem:parabolic-basic}(v), applied with $H^k$ in place
+of $L^2$, we get $u\in C([0,\varepsilon];H^k)$ for all $k$. The equation $\partial_tu=F[u]$ says that
+\[
+  u(t)=u_0+\int_0^t\mathfrak F\bigl(\tau,u(\tau)\bigr)d\tau\qquad\text{in }H^k,
+\]
+where $\mathfrak F(t,a)=F(t,j^{2p}a)$ is a $C^\infty$ map $H^{k+2p}\to H^k$, jointly in $t$, by
+Remark~\ref{lem:spatial-nemytskii}. Hence $u\in C^1([0,\varepsilon];H^k)$ for all $k$. Inductively,
+$u\in C^j([0,\varepsilon];H^k)$ for all $j$ and $k$, and $u$ is smooth by Fact~\ref{fact:sobolev}.
+\end{proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:A}]
+\lean{ShortTime.EquationData.exists_solution_cov, ShortTime.EquationData.exists_solution_cov'}
+\uses{prop:existence, prop:regularity, lem:lowering}
+By Lemma~\ref{lem:lowering} we may assume that $V=T^0_sM$. Combine
+Propositions~\ref{prop:existence} and~\ref{prop:regularity}, with $T=\varepsilon$.
+\end{proof}
+
+\subsection{Uniqueness}\label{sec:uniqueness}
+
+\begin{lemma}[lowering indices]\label{lem:lowering}
+\lean{ShortTime.solution_unique_of_covariant, ShortTime.flat, ShortTime.fiberInner_flat, ShortTime.slotPerm, ShortTime.fiberInner_slotPerm, ShortTime.flatCc, ShortTime.unitModel_covGrad_flatCc, ShortTime.covJet_flatCc, ShortTime.contMDiffOn_flat_param, ShortTime.contMDiffOn_flatCoord, ShortTime.trivAt_slotPerm, ShortTime.jointlySmoothOn_flatCc, ShortTime.EquationData.flatData, ShortTime.evalFirst_jetFlat, ShortTime.castIdx_prepend_jetFlat, ShortTime.EquationData.flatData_partialDeriv, ShortTime.EquationData.legendreForm_flatData, ShortTime.EquationData.isParabolicAt_flatData, ShortTime.EquationData.isParabolicSolution_flatData, ShortTime.flatCc_injective, ShortTime.exists_solution_of_covariant, ShortTime.contMDiff_flatSymm, ShortTime.sharpCc, ShortTime.flatCc_sharpCc, ShortTime.EquationData.isParabolicSolution_of_flatData, ShortTime.EquationData.isParabolicSolution_flatData_iff}
+\uses{def:data, def:solution, def:legendre}
+Let $V=T^r_sM$. Lowering all indices with $g$ is a parallel fibrewise isometry
+$\flat\colon T^r_sM\to T^0_{r+s}M$. It carries equation data on $V$ to equation data on $T^0_{r+s}M$,
+parabolic solutions to parabolic solutions, and the Legendre condition to the Legendre condition with
+the same constant, and conversely through raising indices $\flat^{-1}$. In particular,
+Theorems~\ref{thm:A} and~\ref{thm:B} hold on every tensor bundle once they hold on every covariant
+tensor bundle $T^0_{s'}M$.
+\end{lemma}
+
+\begin{proof}
+Since $\flat$ is parallel, $\nabla^k(\flat u)=\sigma_k\,\flat(\nabla^ku)$, where the slot permutation
+$\sigma_k$ moves the $k$ slots created by $\nabla^k$ in front of the lowered ones. Hence $\flat$ maps
+covariant jets to covariant jets by a fibrewise linear isometry $\flat_J$. Put
+$F^\flat(t,\zeta)=\flat F(t,\flat_J^{-1}\zeta)$ on $\Dom^\flat=\flat_J(\Dom)$. Then $u$ solves
+$\partial_tu=F[u]$ if and only if $\flat u$ solves $\partial_t(\flat u)=F^\flat[\flat u]$. Finally
+$D_{2p}F^\flat=\flat\circ D_{2p}F\circ(\sigma_{2p}\flat)^{-1}$. Prepending covectors commutes with
+$\sigma_k\flat$, and evaluating the first $p$ slots of $\sigma_p\flat\xi$ gives $\flat$ of the same
+evaluation of $\xi$. Since $\flat$ is an isometry, the Legendre forms of $D_{2p}F$ at $\xi$ and of
+$D_{2p}F^\flat$ at $\sigma_p\flat\xi$ agree.
+\end{proof}
+
+\begin{lemma}[the difference of two solutions]\label{lem:difference}
+\lean{ShortTime.EquationData.exists_linearized, ShortTime.EquationData.F_sub_eq_sum_avg, ShortTime.legendreAt_avgFib, ShortTime.EquationData.exists_avg_coeff, ShortTime.EquationData.contMDiffOn_opFieldOf_avg, ShortTime.EquationData.coordP_avg, ShortTime.EquationData.contMDiffOn_avgIntegrand, ShortTime.EquationData.trivAt_partialDeriv, ShortTime.trivAt_opFieldOf, ShortTime.EquationData.contDiffAt_Fmod, ShortTime.contDiffOn_integral_Icc, ShortTime.contMDiffOn_integral_Icc}
+\uses{def:data, def:solution, def:linearization, def:legendre, def:class}
+Let $V=T^0_sM$, let $u$ and $v$ be solutions on $[0,T]$, and let $[t_0,t_0+\eta]\subseteq[0,T]$.
+Suppose that for $t\in[t_0,t_0+\eta]$ and $\sigma\in[0,1]$ the jets $j^{2p}(v+\sigma(u-v))$ lie in
+$\Dom$ and their principal coefficients satisfy the Legendre condition with constant $\lambda$. Then
+$h=u-v$ solves $\partial_th=\tilde Lh$ on $[t_0,t_0+\eta]$, where
+\[
+  \tilde L=\sum_k\tilde A_k\nabla^k,\qquad
+  \tilde A_k(t)=\int_0^1D_kF\bigl(t,j^{2p}(v+\sigma h)\bigr)d\sigma,
+\]
+and $\tilde L$ is a parabolic operator in the sense of Definition~\ref{def:class} with constant
+$\lambda$.
+\end{lemma}
+
+\begin{proof}
+By the fundamental theorem of calculus along the segment of jets,
+\[
+  F(t,j^{2p}u)-F(t,j^{2p}v)=\sum_k\tilde A_k(\nabla^kh).
+\]
+The Legendre form is linear and continuous
+in the coefficient, so the Legendre condition passes to the average $\tilde A_{2p}$.
+
+The coefficients $\tilde A_k$ are smooth on $M\times[t_0,t_0+\eta]$, up to the boundary. To see this,
+fix $x_0\in M$ and work in the trivializations at $x_0$, over an open set $W\ni x_0$. There the
+components of $\tilde A_k(x,t)$ are $\int_0^1f(x,t,\sigma)d\sigma$, where $f(x,t,\sigma)$ is the
+derivative, in the $k$-th jet slot, of the local representative of $F$ at the coordinate jet of
+$v+\sigma h$. This $f$ is smooth on $(W\times[t_0,t_0+\eta])\times[0,1]$. Moreover,
+$q\mapsto\int_0^1f(q,\sigma)d\sigma$ is smooth on $W\times S$, for $S$ convex, whenever $f$ is smooth
+on $(W\times S)\times[0,1]$: one-sided derivatives are differentiated under the integral sign.
+\end{proof}
+
+\begin{lemma}[the Legendre form in coordinates]\label{lem:legendre-coord}
+\lean{ShortTime.exists_legendre_coord, ShortTime.legendreForm_expand, ShortTime.continuous_legendreForm_sections, ShortTime.exists_opField_frame, ShortTime.exists_tensor_frame, ShortTime.EquationData.principal_eq_fibMap}
+\uses{def:legendre, lem:ibp}
+Let $V=T^0_sM$ and $x_0\in M$. Read operators $P\colon(T^0_{s+2p})_x\to(T^0_s)_x$ and tensors
+$\xi\in(T^0_{s+p})_x$, for $x$ near $x_0$, in the trivializations at $x_0$. Then, near $x_0$, the
+Legendre form $\ip{\xi}{\hatP\xi}$ and the norm $\abs\xi^2$ are continuous functions of $x$ and of
+the coordinates of $P$ and $\xi$.
+\end{lemma}
+
+\begin{proof}
+The Legendre form is linear in $P$ and bilinear in the tensor arguments. Using a bump function,
+choose smooth global sections $P_1,\dots,P_N$ and $\Psi_1,\dots,\Psi_K$ whose coordinates near $x_0$
+are constant and form bases. In coordinates, $\ip{\xi}{\hatP\xi}$ is then a polynomial in the
+coordinates of $P$ and $\xi$, with coefficients $\ip{\Psi_j}{\hatP_i\Psi_l}$. By the pointwise identity
+$\ip{\rho\xi}{P^{(p)}\eta}=\ip{\xi}{\hatP\eta}$ from the proof of Lemma~\ref{lem:ibp}, each coefficient
+is the pointwise inner product of two smooth sections, hence continuous. The same argument applies to
+$\abs\xi^2$.
+\end{proof}
+
+\begin{lemma}[local uniqueness]\label{lem:local-unique}
+\lean{ShortTime.EquationData.local_unique, ShortTime.EquationData.exists_parabolic_segment, ShortTime.EquationData.tube_local, ShortTime.LegendreAt.mono}
+\uses{def:solution, def:legendre, def:class, lem:difference}
+Let $V=T^0_sM$, and let $u$ and $v$ be parabolic solutions on $[0,T]$ with $u(t^*)=v(t^*)$ for some
+$t^*<T$. Then there is $\eta>0$ with $u=v$ on $[t^*,t^*+\eta]\cap[0,T]$.
+\end{lemma}
+
+\begin{proof}
+\uses{lem:garding, lem:legendre-coord, fact:gronwall}
+\emph{The segment between the jets stays parabolic.} We show that there are $\eta>0$ and $\lambda>0$
+such that, for $t\in[t^*,t^*+\eta]$, $x\in M$ and $\sigma\in[0,1]$, the jet
+$\zeta=j^{2p}(v+\sigma(u-v))(x,t)$ lies in $\Dom$ and $D_{2p}F(t,\zeta)$ satisfies the Legendre
+condition with constant $\lambda$. At $t=t^*$ the segment is the single jet $j^{2p}u(x,t^*)$, because
+$u(t^*)=v(t^*)$.
+
+Fix $x_0\in M$ and work in the trivializations at $x_0$. The jet of the segment is continuous in
+$(x,t,\sigma)$, and at $t=t^*$ it lies in $\Dom$. Since $\Dom$ is relatively open and $[0,1]$ is
+compact, the segment stays in $\Dom$ for $x$ near $x_0$ and $t$ near $t^*$. There the coefficient
+$D_{2p}F$ along the segment is continuous in $(x,t,\sigma)$. Let $\lambda_0$ be a Legendre constant of
+$u$ at $(t^*,x_0)$, and set
+\[
+  G(x,t,\sigma,\xi)=(-1)^{p+1}\ip{\xi}{\hatP\xi}-\tfrac{\lambda_0}{2}\abs\xi^2,\qquad
+  P=D_{2p}F\bigl(t,j^{2p}(v+\sigma(u-v))(x,t)\bigr),
+\]
+with $\xi$ in coordinates. By Lemma~\ref{lem:legendre-coord}, $G$ is continuous. At $x=x_0$ and $t=t^*$
+it is positive for $\sigma\in[0,1]$ and $\abs\xi=1$. Since $[0,1]$ times the unit sphere is compact,
+$G>0$ there for $x$ near $x_0$ and $t\in[t^*,t^*+\eta_{x_0}]$. Both terms of $G$ are quadratic in
+$\xi$, so the Legendre condition holds there with constant $\lambda_0/2$. Finitely many of these
+neighbourhoods cover $M$; take the least $\eta_{x_0}$ and the least constant.
+
+\emph{The difference solves a linear equation.} Let $h=u-v$. Then
+$\partial_th=\tilde Lh=\sum_k\tilde A_k(\nabla^kh)$, where
+\[
+  \tilde A_k=\int_0^1D_kF\bigl(t,j^{2p}(v+\sigma h)\bigr)d\sigma
+\]
+is smooth, and $\tilde L$ is parabolic with constant $\lambda$ on $[t^*,t^*+\eta]$, by
+Lemma~\ref{lem:difference}.
+
+\emph{Energy estimate.} By Lemma~\ref{lem:garding},
+$\frac d{dt}\norm h^2=2\ip h{\tilde Lh}\le2C\norm h^2$. Since $h(t^*)=0$, Gronwall's inequality gives
+$h=0$ on $[t^*,t^*+\eta]$.
+\end{proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:B}]
+\uses{lem:lowering, lem:local-unique}
+By Lemma~\ref{lem:lowering} we may assume that $V=T^0_sM$. Let $u$ and $v$ be parabolic solutions on
+$[0,T]$ with the same initial datum. The set of $t\in[0,T]$ with $u(t)=v(t)$ is closed, because $u$
+and $v$ are continuous in $t$, and it contains $0$. By Lemma~\ref{lem:local-unique}, each of its
+points $t^*<T$ is followed by an interval $[t^*,t^*+\eta]$ inside the set. Since $[0,T]$ is
+connected, the set is all of $[0,T]$.
+\end{proof}
+
+\subsection{Smooth dependence}
+
+\begin{proof}[Proof of Theorem~\ref{thm:C}]
+\uses{thm:linear, cor:N, fact:ift, lem:flows, prop:regularity, lem:parabolic-basic}
+\emph{Step 1: the implicit function theorem around $u$.} Let $u$ be a parabolic solution on $[0,T]$,
+and set $\bar u=u-Eu_0$. It is smooth with $\bar u(0)=0$, so $\bar u\in\Pp^m_0$. On a neighbourhood of
+$(u_0,0)$ in $H^{2pm}(M;V)\times\Pp^m_0$ define
+\[
+  H(a,v)=\partial_t(Ea+\bar u+v)-F[Ea+\bar u+v].
+\]
+This is well defined and $C^\infty$ by Lemma~\ref{lem:parabolic-basic}(iv) and Corollary~\ref{cor:N}.
+We have $H(u_0,0)=0$, and $D_vH(u_0,0)=\partial_t-L_u$ is an isomorphism by
+Theorem~\ref{thm:linear}, applied with the constant
+$\kappa_K$ of the compact set of jets of $u$. The implicit function theorem gives $\delta>0$ and a
+$C^\infty$ map $a\mapsto v(a)$ with $H(a,v(a))=0$. Put
+\[
+  \mathcal S(a)=Ea+\bar u+v(a).
+\]
+Then $\mathcal S(a)$ solves the equation on $[0,T]$ with $\mathcal S(a)(0)=a$. Its jets are uniformly
+close to those of $u$, hence in $\Par$, when $\delta$ is small.
+
+\emph{Step 2: smoothness for smooth data.} Let $a$ be smooth. Repeat the proof of
+Proposition~\ref{prop:regularity} with the parameters $(a,s)$ and
+\[
+  H(a,s,v)=\partial_t\bigl(Ea+\tilde\phi_s^*\bar u+v\bigr)-F_s\bigl[Ea+\tilde\phi_s^*\bar u+v\bigr].
+\]
+Using $\tilde\phi_s^*E=E\tilde\phi_s^*$ one gets
+$\tilde\phi_s^*v(a)=\Psi(\tilde\phi_s^*a,s)$ for small $s$. This is $C^\infty$ in $s$, because
+$s\mapsto\tilde\phi_s^*a$ is $C^\infty$ into $H^{2pm}$. Hence $\mathcal S(a)$ is smooth, arguing as in
+Steps~2--3 of that proof on all of $[0,T]$.
+\end{proof}
+
+\begin{proof}[Proof of Corollary~\ref{cor:C}]
+\uses{thm:C, thm:B, lem:embedding}
+\emph{Remark on the formalization.} The Lean proof does not use the smooth map $\mathcal S$ of
+Theorem~\ref{thm:C}. It perturbs the fixed smooth solution $u$ by the time-independent family
+$a-u_0$, applies the implicit function theorem with parameter, and uses regularity in trace form at
+the fixed base solution (see \texttt{blueprint/DECISIONS.md}). The argument below is the original route.
+\begin{itemize}[nosep]
+\item Consistency across levels: for $m'\ge m$ and smooth $a$ in both domains, the level-$m'$ and
+  level-$m$ solutions coincide by Theorem~\ref{thm:B}.
+\item If $u_0^{(k)}\to u_0$ in $C^\infty$, then for every $m$ we have
+  $\norm{u_0^{(k)}-u_0}_{H^{2pm}}<\delta_m$ for large $k$.
+\item Therefore $u^{(k)}=\mathcal S_m(u_0^{(k)})\to u$ in $\Pp^m$ for every $m$, and hence in
+  $C^\infty$ by Lemma~\ref{lem:embedding}.
+\end{itemize}
+\end{proof}
+
+% ===========================================================================
+\section{Examples}\label{sec:examples}
+% ===========================================================================
+
+In each example we identify the principal coefficient and check the Legendre condition using
+Lemma~\ref{lem:legendre-examples}. The geometric conclusions that go beyond short-time existence are
+not discussed; an example is the invariance of a target manifold, or the passage from a gauge-fixed
+flow to the original flow.
+
+\subsection{Quasilinear equations of product type}
+This is the setting of Corollary~\ref{cor:MM}. It includes the $Q$-curvature flow on four-manifolds,
+whose principal part is $-e^{-4w}\Delta_{g_0}^2$ (see \cite{Brendle,MalchiodiStruwe}), and the
+Willmore-type flows of \cite{KuwertSchaetzle,Polden}, once these are written as scalar equations for a
+graph function. \todo{Check the exact forms against the references.}
+
+\subsection{Polyharmonic heat flows of maps}
+Let $N\subset\R^K$ be a closed submanifold, and let $V=M\times\R^K$ be the trivial bundle with the flat
+connection. The extrinsic polyharmonic map heat flow of order $2p$ has the form
+\[
+  \partial_tu=-(\Lap)^pu+\mathcal Q\bigl(u,\nabla u,\dots,\nabla^{2p-1}u\bigr),
+\]
+with $\mathcal Q$ smooth for $u$ in a tubular neighbourhood of $N$; see \cite{EellsSampson} for $p=1$
+and \cite{Lamm,Gastel} for $p\ge2$. \todo{Verify that the lower-order structure is as stated for all
+$p$.} By Lemma~\ref{lem:legendre-examples}(b), $\Par=\Dom$ is the set of jets whose zeroth component
+lies in the tubular neighbourhood. Theorems~\ref{thm:A}--\ref{thm:C} give short-time existence,
+uniqueness and smooth dependence for every $p$, including the sixth-order ($p=3$) triharmonic flow.
+
+\subsection{The Ricci--DeTurck flow}\label{ex:rdt}
+Fix a background metric $\tilde g$ on $M$, and use it as the metric $g$ of Section~\ref{sec:setting}.
+Let $V=\operatorname{Sym}^2T^*M$ with the induced metric and connection. The Ricci--DeTurck flow
+\cite{DeTurck,Hamilton82} can be written as
+\[
+  \partial_tg_{ij}=(g^{-1})^{ab}\tilde\nabla_a\tilde\nabla_bg_{ij}+\mathcal Q(g,g^{-1},\tilde\nabla g,\widetilde{\mathrm{Rm}})_{ij},
+\]
+with $\mathcal Q$ smooth; see \cite{Shi,ChowKnopf}. Here $\Dom=\Par$ is the set of jets whose zeroth
+component is positive definite. The principal coefficient is $P(X)=(\zeta_0^{-1})^{ab}X_{ab}$, and
+$\kappa(P)$ is the smallest eigenvalue of $\zeta_0^{-1}$ relative to $\tilde g$, by
+Lemma~\ref{lem:legendre-examples}(a) with $p=1$. Theorems~\ref{thm:A}--\ref{thm:C} therefore give
+short-time existence, uniqueness and smooth dependence for the Ricci--DeTurck flow. The Ricci flow is
+recovered by DeTurck's diffeomorphisms, which is a separate ODE argument.
+
+\subsection{Parabolic Monge--Amp\`ere equations}
+A fully nonlinear example with a nontrivial parabolicity domain is
+\[
+  \partial_tu=\log\frac{\det\bigl(g+\nabla^2u\bigr)}{\det g}+h(x,t,u,\nabla u),
+\]
+for scalar $u$. Take $\Dom=\Par$ to be the set of jets with $g+\operatorname{Sym}\zeta_2>0$. The
+principal coefficient is $P(X)=\bigl((g+\operatorname{Sym}\zeta_2)^{-1}\bigr)^{ab}X_{ab}$, which
+satisfies the Legendre condition on $\Dom$.
+
+The K\"ahler--Ricci flow written as a parabolic complex Monge--Amp\`ere equation for a potential
+\cite{Cao} has the same structure. On a K\"ahler manifold, $\sqrt{-1}\partial\bar\partial\varphi$ is a
+linear function of $\nabla^2\varphi$, and the principal coefficient is a positive multiple of
+$g_\varphi^{-1}$ acting on the $J$-invariant part. \todo{Write out the K\"ahler case in detail.}
+
+% ===========================================================================
+\section{Remarks on the scope}\label{sec:scope}
+% ===========================================================================
+
+\begin{enumerate}[label=(\arabic*)]
+\item \emph{Gauge-degenerate flows.} For the Ricci flow, the mean curvature and Willmore flows of
+  immersions, the Yang--Mills flow and similar equations, $F$ is degenerate in the directions of a gauge
+  group, so the Legendre condition fails. The standard remedy (DeTurck's trick) is to add a
+  gauge-fixing term, solve the resulting strictly parabolic equation, which is covered by our results,
+  and then undo the gauge by solving an ODE. A general version of this last step, stated abstractly
+  for flows equivariant under a gauge group, would be a natural companion to the present results.
+\item \emph{Strong parabolicity without a Legendre representation.} By Remark~\ref{rem:sos}, such
+  operators exist in general. They require G\aa rding's inequality in its general form (localization
+  and Fourier analysis). The rest of the argument is unchanged, because everything downstream of
+  Lemma~\ref{lem:garding} uses only G\aa rding's inequality, and uses it only for operators
+  $L^{(r)}$ obtained by differentiating (Lemma~\ref{lem:commute}).
+\item \emph{Nonlocal lower-order terms.} Suppose $F$ depends in addition on finitely many
+  integrals of the form $\int_M\Phi(t,j^{2p-1}u)\dmu$, such as normalizations or averages. Then
+  Proposition~\ref{prop:nemytskii} and the rest of the argument go through with trivial changes.
+\item \emph{Analytic dependence.} If $F$ is real analytic in $\zeta$, the maps in the implicit function
+  theorem are analytic, and $\mathcal S$ in Theorem~\ref{thm:C} is analytic.
+\item \emph{General bundles versus tensor bundles.} The paper is written for arbitrary Riemannian
+  bundles. The formal statements treat the tensor bundles $V=T^r_sM$ of type $(r,s)$, with the
+  metric and connection induced by $g$ and its Levi-Civita connection. These are closed under the
+  operation $W\mapsto T^*M\otimes W$ used in Lemma~\ref{lem:commute}, and for them the horizontal
+  flows of Section~\ref{sec:regularity} can be replaced by natural pull-backs of tensors.
+  Vector-valued systems, $V=T^r_sM\otimes\R^K$ with $K\ge2$, are not covered by the formal
+  statements; they need only an extra fixed factor in the model fibre.
+\end{enumerate}
+
+% ===========================================================================
+\section{Notes on the formalization}\label{sec:formal}
+% ===========================================================================
+
+\subsection{Dependency structure}
+
+Every numbered item of this paper carries two annotations for software, invisible in the printed
+version: the Lean declarations formalizing it, and the items its statement and proof use.
+A script in the repository turns them into a dependency graph with formalization status, which it
+writes to \texttt{blueprint/map.md}. It can also \emph{pin} approved Lean statements, so
+that later changes to them are detected. At the coarsest level the proof has four layers, each of
+which uses only the ones before it.
+
+\begin{enumerate}[label=\textbf{L\arabic*}]
+\item \emph{Geometry and algebra:} Lemma~\ref{lem:ricci}, Definition~\ref{def:legendre},
+  Lemmas~\ref{lem:legendre-basic} and~\ref{lem:legendre-examples}.
+\item \emph{Function spaces:} Lemmas~\ref{lem:sobolev-basic}, \ref{lem:interp},
+  \ref{lem:parabolic-basic} and~\ref{lem:embedding}, Proposition~\ref{prop:nemytskii},
+  Corollary~\ref{cor:N}, and the imported
+  Facts~\ref{fact:sobolev}, \ref{fact:weak}, \ref{fact:eigen} and~\ref{fact:elliptic}.
+\item \emph{Linear theory:} Lemmas~\ref{lem:ibp}, \ref{lem:garding}, \ref{lem:commute}
+  and~\ref{lem:continuity}, Propositions~\ref{prop:energy}, \ref{prop:apriori}
+  and~\ref{prop:model}, and Theorem~\ref{thm:linear}.
+\item \emph{Nonlinear theory:} Lemmas~\ref{lem:formal}, \ref{lem:cutoff} and~\ref{lem:flows},
+  Propositions~\ref{prop:existence} and~\ref{prop:regularity}, Theorems~\ref{thm:A},
+  \ref{thm:B} and~\ref{thm:C}, and the imported Fact~\ref{fact:ift}.
+\end{enumerate}
+
+Layers L3 and L4 interact only through Theorem~\ref{thm:linear}, and only for operators with smooth
+coefficients. The two layers can be developed in parallel once that statement is fixed.
+
+\subsection{The trusted statements}
+
+Theorems~\ref{thm:A} and~\ref{thm:B}, and Corollary~\ref{cor:C} (the sequential form of
+Theorem~\ref{thm:C}), mention only
+smooth sections, covariant derivatives, time derivatives and the pointwise algebraic
+Definition~\ref{def:legendre}. These are the statements that should appear in the final formal
+version, so that the definitions a reader has to trust stay small. The parabolic Sobolev spaces are
+internal to the proofs.
+
+\subsection{Imported facts and candidate sources}
+
+The following table records where each imported or reusable ingredient might come from. The entries
+marked ``to check'' are based on file names and statements seen in the library, not on a build.
+
+\medskip
+\begin{center}
+\footnotesize
+\begin{tabular}{@{}p{4.1cm}p{2.9cm}p{6.4cm}@{}}
+\toprule
+Ingredient & Used in & Candidate source\\
+\midrule
+Ricci identity, commutators & Lemma~\ref{lem:ricci} & \cite{DGlib} \texttt{Tensor/RicciIdentity} (partial)\\
+Divergence theorem, integration by parts & throughout & \cite{DGlib} \texttt{Analysis/Integration}\\
+Iterated covariant derivatives & \S\ref{sec:setting} & \cite{DGlib} \texttt{iteratedCovGrad}\\
+Interpolation (log-convexity) & Lemma~\ref{lem:interp} & \cite{DGlib} \texttt{Sobolev/GagliardoNirenberg/\allowbreak FiberNorm} (to check)\\
+Sobolev embedding & Fact~\ref{fact:sobolev} & \cite{DGlib} \texttt{Sobolev/Embedding/Tensor}\\
+Weak $=$ strong derivatives & Fact~\ref{fact:weak} & \cite{DGlib} \texttt{Sobolev/Intrinsic} (to check)\\
+Eigenbasis of $\Lap$ & Fact~\ref{fact:eigen} & \cite{DGlib} \texttt{Spectral/Tensor} (tensor bundles)\\
+Elliptic estimate & Fact~\ref{fact:elliptic} & \cite{DGlib} \texttt{Spectral/Tensor/\allowbreak SobolevScale/Jet} (to check)\\
+$H^1(0,T;X)\subset C([0,T];X)$ & Lemma~\ref{lem:parabolic-basic} & \cite{DGlib} \texttt{Parabolic/TimeSobolev/H1}\\
+Per-mode ODE solution & Proposition~\ref{prop:model} & \cite{DGlib} \texttt{Parabolic/\allowbreak MaximalRegularity/PerMode}\\
+Flows of vector fields & Lemma~\ref{lem:flows} & \cite{DGlib} \texttt{Analysis/ODE}, Mathlib\\
+Inverse/implicit function theorem & Fact~\ref{fact:ift} & Mathlib\\
+Gronwall's inequality & Prop.~\ref{prop:energy}, Thm.~\ref{thm:B} & Mathlib\\
+Method of continuity & Lemma~\ref{lem:continuity} & new (short)\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Points in this draft that need checking}
+
+\begin{itemize}[nosep]
+\item Remark~\ref{rem:sos}: the precise statement and the references.
+\item Section~\ref{sec:examples}: the exact form of each example equation against the literature.
+\item Lemma~\ref{lem:flows} and Step~3 of Proposition~\ref{prop:regularity}: these are written at the
+  level of ``routine'', and a formalization will need them spelled out.
+\item The values of the constants $K$ required in Propositions~\ref{prop:energy}
+  and~\ref{prop:apriori} are generous rather than sharp; any finite value suffices.
+\end{itemize}
+
+% ===========================================================================
+\appendix
+\section{Abstract tools}\label{app:abstract}
+% ===========================================================================
+
+\begin{fact}[implicit function theorem {\cite{Lang}}]\label{fact:ift}
+\source{Mathlib: HasStrictFDerivAt.implicitFunction, ContDiffAt.to_localInverse}
+Let $X$, $Y$ and $Z$ be Banach spaces, $U\subseteq Z\times X$ open, and $H\colon U\to Y$ of class
+$C^k$ with $k\ge1$. Suppose $H(z_0,x_0)=y_0$ and $D_xH(z_0,x_0)\colon X\to Y$ is invertible. Then
+there are open neighbourhoods $Z'\ni z_0$, $Y'\ni y_0$ and $X'\ni x_0$, and a $C^k$ map
+$\Psi\colon Z'\times Y'\to X'$, such that for $(z,y,x)\in Z'\times Y'\times X'$
+\[
+  H(z,x)=y\iff x=\Psi(z,y).
+\]
+Taking $Z$ to be a point gives the inverse function theorem.
+\end{fact}
+
+\begin{fact}[Gronwall]\label{fact:gronwall}
+\source{Mathlib: norm_le_gronwallBound_of_norm_deriv_right_le}
+Let $\varphi\in C^1([t_0,t_1])$ with $\varphi(t_0)=0$ and $\varphi'\le a\varphi+b$, where $a\ge0$ and
+$b\ge0$ is continuous. Then $\varphi(t)\le e^{a(t-t_0)}\int_{t_0}^tb$.
+\end{fact}
+
+% ===========================================================================
+\begin{thebibliography}{99}
+
+\bibitem{Amann} H. Amann, \emph{Linear and Quasilinear Parabolic Problems. Vol.~I: Abstract Linear
+Theory}, Monographs in Mathematics 89, Birkh\"auser, 1995.
+
+\bibitem{Angenent90} S. B. Angenent, Nonlinear analytic semiflows, \emph{Proc. Roy. Soc. Edinburgh
+Sect.~A} \textbf{115} (1990), 91--107.
+
+\bibitem{Aubin} T. Aubin, \emph{Some Nonlinear Problems in Riemannian Geometry}, Springer, 1998.
+
+\bibitem{Baker} C. Baker, \emph{The mean curvature flow of submanifolds of high codimension}, PhD
+thesis, Australian National University, 2010.
+
+\bibitem{Brendle} S. Brendle, Global existence and convergence for a higher order flow in conformal
+geometry, \emph{Ann. of Math.} \textbf{158} (2003), 323--343.
+
+\bibitem{Cao} H.-D. Cao, Deformation of K\"ahler metrics to K\"ahler--Einstein metrics on compact
+K\"ahler manifolds, \emph{Invent. Math.} \textbf{81} (1985), 359--372.
+
+\bibitem{ChowKnopf} B. Chow and D. Knopf, \emph{The Ricci Flow: An Introduction}, Mathematical Surveys
+and Monographs 110, AMS, 2004.
+
+\bibitem{DeTurck} D. M. DeTurck, Deforming metrics in the direction of their Ricci tensors, \emph{J.
+Differential Geom.} \textbf{18} (1983), 157--162.
+
+\bibitem{DGlib} \texttt{differential-geometry}: a Lean 4 library for differential geometry and
+geometric analysis, \url{https://github.com/qinz1yang/differential-geometry}, version 0.1.3, 2026.
+
+\bibitem{EellsSampson} J. Eells and J. H. Sampson, Harmonic mappings of Riemannian manifolds,
+\emph{Amer. J. Math.} \textbf{86} (1964), 109--160.
+
+\bibitem{Eidelman} S. D. Eidelman, \emph{Parabolic Systems}, North-Holland, 1969.
+
+\bibitem{Gastel} A. Gastel, The extrinsic polyharmonic map heat flow in the critical dimension,
+\emph{Adv. Geom.} \textbf{6} (2006), 501--521. \todo{check}
+
+\bibitem{GT} D. Gilbarg and N. S. Trudinger, \emph{Elliptic Partial Differential Equations of Second
+Order}, Springer, 2001 (reprint of the 1998 edition).
+
+\bibitem{Hamilton75} R. S. Hamilton, \emph{Harmonic Maps of Manifolds with Boundary}, Lecture Notes in
+Mathematics 471, Springer, 1975.
+
+\bibitem{Hamilton82} R. S. Hamilton, Three-manifolds with positive Ricci curvature, \emph{J.
+Differential Geom.} \textbf{17} (1982), 255--306.
+
+\bibitem{Hebey} E. Hebey, \emph{Nonlinear Analysis on Manifolds: Sobolev Spaces and Inequalities},
+Courant Lecture Notes 5, AMS, 2000.
+
+\bibitem{Hilbert} D. Hilbert, \"Uber die Darstellung definiter Formen als Summe von Formenquadraten,
+\emph{Math. Ann.} \textbf{32} (1888), 342--350.
+
+\bibitem{HuiskenPolden} G. Huisken and A. Polden, Geometric evolution equations for hypersurfaces, in:
+\emph{Calculus of Variations and Geometric Evolution Problems (Cetraro, 1996)}, Lecture Notes in
+Mathematics 1713, Springer, 1999, 45--84.
+
+\bibitem{KuwertSchaetzle} E. Kuwert and R. Sch\"atzle, Gradient flow for the Willmore functional,
+\emph{Comm. Anal. Geom.} \textbf{10} (2002), 307--339.
+
+\bibitem{Lamm} T. Lamm, Heat flow for extrinsic biharmonic maps with small initial energy, \emph{Ann.
+Global Anal. Geom.} \textbf{26} (2004), 369--384. \todo{check}
+
+\bibitem{Lang} S. Lang, \emph{Fundamentals of Differential Geometry}, Graduate Texts in Mathematics
+191, Springer, 1999.
+
+\bibitem{LionsMagenes} J.-L. Lions and E. Magenes, \emph{Non-Homogeneous Boundary Value Problems and
+Applications, Vol.~I}, Springer, 1972.
+
+\bibitem{Lunardi} A. Lunardi, \emph{Analytic Semigroups and Optimal Regularity in Parabolic Problems},
+Birkh\"auser, 1995.
+
+\bibitem{MalchiodiStruwe} A. Malchiodi and M. Struwe, $Q$-curvature flow on $S^4$, \emph{J.
+Differential Geom.} \textbf{73} (2006), 1--44.
+
+\bibitem{MM} C. Mantegazza and L. Martinazzi, A note on quasilinear parabolic equations on manifolds,
+\emph{Ann. Sc. Norm. Super. Pisa Cl. Sci. (5)} \textbf{XI} (2012), 857--874.
+
+\bibitem{mathlib} The mathlib Community, The Lean mathematical library, in: \emph{Proceedings of the
+9th ACM SIGPLAN International Conference on Certified Programs and Proofs (CPP 2020)}, 367--381.
+
+\bibitem{Motzkin} T. S. Motzkin, The arithmetic-geometric inequality, in: \emph{Inequalities}
+(O. Shisha, ed.), Academic Press, 1967, 205--224.
+
+\bibitem{Polden} A. Polden, \emph{Curves and surfaces of least total curvature and fourth-order
+flows}, PhD thesis, Universit\"at T\"ubingen, 1996.
+
+\bibitem{Sharples} J. J. Sharples, Linear and quasilinear parabolic equations in Sobolev space,
+\emph{J. Differential Equations} \textbf{202} (2004), 111--142.
+
+\bibitem{Shi} W.-X. Shi, Deforming the metric on complete Riemannian manifolds, \emph{J. Differential
+Geom.} \textbf{30} (1989), 223--301.
+
+\bibitem{Solonnikov} V. A. Solonnikov, On boundary value problems for linear parabolic systems of
+differential equations of general form, \emph{Trudy Mat. Inst. Steklov.} \textbf{83} (1965), 3--163.
+
+\end{thebibliography}
+
+\end{document}

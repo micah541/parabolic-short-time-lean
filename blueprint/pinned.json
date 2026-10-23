@@ -1,0 +1,132 @@
+{
+  "ShortTime.CovJetFiber": {
+    "sha": "1f677ea418d9ab04",
+    "statement": "abbrev CovJetFiber (r s N : ℕ) (x : M) : Type _ := ∀ k : Fin (N + 1), TensorRSSpace r (s + (k : ℕ)) I x variable (E) in",
+    "file": "ShortTime/Setting/Jet.lean"
+  },
+  "ShortTime.EquationData": {
+    "sha": "f38bf4e767fdc117",
+    "statement": "structure EquationData (r s p : ℕ) where T₀ : ℝ T₀_pos : 0 < T₀ dom : ℝ → (x : M) → Set (CovJetFiber I r s (2 * p) x) F : ℝ → (x : M) → CovJetFiber I r s (2 * p) x → TensorRSSpace r s I x dom_relOpen : ∀ x₀ : M, ∃ U : Set (ℝ × M × JetModel E r s (2 * p)), IsOpen U ∧ localDom r s (2 * p) T₀ dom x₀ = U ∩ localSlab (I := I) r s (2 * p) T₀ x₀ smooth : ∀ x₀ : M, ContMDiffOn (𝓘(ℝ, ℝ).prod (I.prod 𝓘(ℝ, JetModel E r s (2 * p)))) 𝓘(ℝ, TensorRSModel r s ℝ E) ∞ (localRep r s (2 * p) F x₀) (localDom r s (2 * p) T₀ dom x₀) namespace EquationData variable {r s p : ℕ} (D : EquationData I M r s p)",
+    "file": "ShortTime/Setting/Equation.lean"
+  },
+  "ShortTime.EquationData.IsParabolicAt": {
+    "sha": "bf18ed00972d1216",
+    "statement": "def IsParabolicAt (g : SmoothRiemannianMetric I M) (t : ℝ) (x : M) (ζ : CovJetFiber I r s (2 * p) x) : Prop := ζ ∈ D.dom t x ∧ ∃ lam : ℝ, LegendreAt g r s p x (D.principal t x ζ) lam",
+    "file": "ShortTime/Setting/Equation.lean"
+  },
+  "ShortTime.EquationData.IsParabolicSolution": {
+    "sha": "47995e0a6fdc723a",
+    "statement": "def IsParabolicSolution (g : SmoothRiemannianMetric I M) (u₀ : SmoothCcTensor g r s) (T : ℝ) (u : ℝ → SmoothCcTensor g r s) : Prop := D.IsSolution g u₀ T u ∧ ∀ t ∈ Icc (0 : ℝ) T, ∀ x : M, D.IsParabolicAt g t x (covJet g r s (2 * p) (u t) x) end EquationData end ShortTime",
+    "file": "ShortTime/Setting/Equation.lean"
+  },
+  "ShortTime.EquationData.IsSolution": {
+    "sha": "76ae9e59fa89d18f",
+    "statement": "structure IsSolution (g : SmoothRiemannianMetric I M) (u₀ : SmoothCcTensor g r s) (T : ℝ) (u : ℝ → SmoothCcTensor g r s) : Prop where pos : 0 < T le_T₀ : T ≤ D.T₀ smooth : JointlySmoothOn g r s (Icc 0 T) u initial : u 0 = u₀ jets_mem : ∀ t ∈ Icc (0 : ℝ) T, ∀ x : M, covJet g r s (2 * p) (u t) x ∈ D.dom t x eqn : ∀ t ∈ Icc (0 : ℝ) T, ∀ x : M, HasDerivWithinAt (fun τ => TensorRSSpace.toModel ((u τ).toSection x)) (TensorRSSpace.toModel (D.F t x (covJet g r s (2 * p) (u t) x))) (Icc 0 T) t",
+    "file": "ShortTime/Setting/Equation.lean"
+  },
+  "ShortTime.EquationData.castIdx": {
+    "sha": "c04b560eb652c4b1",
+    "statement": "def castIdx {r a b : ℕ} (h : a = b) (x : M) : TensorRSSpace r a I x ≃L[ℝ] TensorRSSpace r b I x := by subst h exact ContinuousLinearEquiv.refl ℝ _",
+    "file": "ShortTime/Setting/Equation.lean"
+  },
+  "ShortTime.EquationData.partialDeriv": {
+    "sha": "7937a9d4605d04ac",
+    "statement": "def partialDeriv (k : Fin (2 * p + 1)) (t : ℝ) (x : M) (ζ : CovJetFiber I r s (2 * p) x) : TensorRSSpace r (s + k) I x →L[ℝ] TensorRSSpace r s I x := (fderiv ℝ (D.F t x) ζ).comp (ContinuousLinearMap.single ℝ (fun k : Fin (2 * p + 1) => TensorRSSpace r (s + k) I x) k)",
+    "file": "ShortTime/Setting/Equation.lean"
+  },
+  "ShortTime.EquationData.principal": {
+    "sha": "0928ca0e1a15d4d8",
+    "statement": "def principal (t : ℝ) (x : M) (ζ : CovJetFiber I r s (2 * p) x) : TensorRSSpace r (s + p + p) I x →L[ℝ] TensorRSSpace r s I x := (D.partialDeriv (Fin.last (2 * p)) t x ζ).comp (castIdx (r := r) (by simp only [Fin.val_last]; omega) x).toContinuousLinearMap",
+    "file": "ShortTime/Setting/Equation.lean"
+  },
+  "ShortTime.JetModel": {
+    "sha": "7a925d09ece4f758",
+    "statement": "abbrev JetModel (r s N : ℕ) : Type _ := ∀ k : Fin (N + 1), TensorRSModel r (s + (k : ℕ)) ℝ E",
+    "file": "ShortTime/Setting/Jet.lean"
+  },
+  "ShortTime.JointlySmoothOn": {
+    "sha": "73f01c0dbd458830",
+    "statement": "def JointlySmoothOn (g : SmoothRiemannianMetric I M) (r s : ℕ) (S : Set ℝ) (u : ℝ → SmoothCcTensor g r s) : Prop := ContMDiffOn (I.prod 𝓘(ℝ, ℝ)) (I.prod 𝓘(ℝ, TensorRSModel r s ℝ E)) ∞ (fun q : M × ℝ => TotalSpace.mk' (TensorRSModel r s ℝ E) (E := fun x : M => TensorRSSpace r s I x) q.1 ((u q.2).toSection q.1)) ((Set.univ : Set M) ×ˢ S) end ShortTime",
+    "file": "ShortTime/Setting/Jet.lean"
+  },
+  "ShortTime.LegendreAt": {
+    "sha": "86be7a30ff399968",
+    "statement": "def LegendreAt (g : SmoothRiemannianMetric I M) (r s p : ℕ) (x : M) (P : TensorRSSpace r (s + p + p) I x →L[ℝ] TensorRSSpace r s I x) (lam : ℝ) : Prop := 0 < lam ∧ ∀ ξ : TensorRSSpace r (s + p) I x, lam * fiberInner g r (s + p) x ξ ξ ≤ (-1 : ℝ) ^ (p + 1) * legendreForm g r s p x P ξ ξ end ShortTime",
+    "file": "ShortTime/Setting/Legendre.lean"
+  },
+  "ShortTime.covJet": {
+    "sha": "b197f501d46f630e",
+    "statement": "def covJet (g : SmoothRiemannianMetric I M) (r s N : ℕ) (u : SmoothCcTensor g r s) (x : M) : CovJetFiber I r s N x := fun k => (iteratedCovGrad g r s k u).toSection x",
+    "file": "ShortTime/Setting/Jet.lean"
+  },
+  "ShortTime.evalFirst": {
+    "sha": "1599469fbb83fad0",
+    "statement": "def evalFirst {r s : ℕ} {x : M} : ∀ p : ℕ, (Fin p → TangentSpace I x) → TensorRSSpace r (s + p) I x → TensorRSSpace r s I x | 0, _, ξ => ξ | p + 1, v, ξ => evalFirst p (Fin.tail v) ((covGradBundleEquiv (I := I) (M := M) r (s + p) x).symm ξ (v 0))",
+    "file": "ShortTime/Setting/Legendre.lean"
+  },
+  "ShortTime.exists_solution": {
+    "sha": "9c48624b64435b7b",
+    "statement": "theorem exists_solution (D : EquationData I M r s p) (hp : 1 ≤ p) (g : SmoothRiemannianMetric I M) (u₀ : SmoothCcTensor g r s) (h₀ : ∀ x : M, D.IsParabolicAt g 0 x (covJet g r s (2 * p) u₀ x)) : ∃ T > 0, ∃ u : ℝ → SmoothCcTensor g r s, D.IsParabolicSolution g u₀ T u",
+    "file": "ShortTime/MainTheorems.lean"
+  },
+  "ShortTime.fiberInner": {
+    "sha": "b886e200dab5986b",
+    "statement": "def fiberInner (g : SmoothRiemannianMetric I M) (r s : ℕ) (x : M) (v w : TensorRSSpace r s I x) : ℝ := (Tensor.TensorRSRiemannianBundle.tensorRSRiemannianMetric (I := I) (M := M) g r s).inner x v w",
+    "file": "ShortTime/Setting/Legendre.lean"
+  },
+  "ShortTime.fiberNorm": {
+    "sha": "d0dcde2c0532b057",
+    "statement": "def fiberNorm (g : SmoothRiemannianMetric I M) (r s : ℕ) (x : M) (v : TensorRSSpace r s I x) : ℝ := Real.sqrt (fiberInner g r s x v v)",
+    "file": "ShortTime/Setting/Legendre.lean"
+  },
+  "ShortTime.jetBase": {
+    "sha": "6c4991abf3d26809",
+    "statement": "def jetBase (r s N : ℕ) (x₀ : M) : Set M := (trivAt I M r s x₀).baseSet ∩ ⋂ k : Fin (N + 1), (trivAt I M r (s + k) x₀).baseSet",
+    "file": "ShortTime/Setting/Equation.lean"
+  },
+  "ShortTime.jetOfModel": {
+    "sha": "119a2d5bd99c52ee",
+    "statement": "def jetOfModel (r s N : ℕ) (x₀ y : M) (z : JetModel E r s N) : CovJetFiber I r s N y := fun k => (trivAt I M r (s + k) x₀).symmL ℝ y (z k)",
+    "file": "ShortTime/Setting/Equation.lean"
+  },
+  "ShortTime.legendreForm": {
+    "sha": "fafd81dfac182007",
+    "statement": "def legendreForm (g : SmoothRiemannianMetric I M) (r s p : ℕ) (x : M) (P : TensorRSSpace r (s + p + p) I x →L[ℝ] TensorRSSpace r s I x) (ξ η : TensorRSSpace r (s + p) I x) : ℝ := by classical let cd : InnerProductSpace.Core ℝ (TangentSpace I x) := g.toRiemannianMetric.toCore x have hc : ContinuousAt (fun v : TangentSpace I x => cd.inner v v) 0 := g.toRiemannianMetric.continuousAt x have hb : Bornology.IsVonNBounded ℝ {v : TangentSpace I x | RCLike.re (cd.inner v v) < 1} := g.toRiemannianMetric.isVonNBounded x letI : NormedAddCommGroup (TangentSpace I x) := cd.toNormedAddCommGroupOfTopology hc hb letI : InnerProductSpace ℝ (TangentSpace I x) := InnerProductSpace.ofCoreOfTopology cd hc hb let n : ℕ := Module.finrank ℝ (TangentSpace I x) let e : OrthonormalBasis (Fin n) ℝ (TangentSpace I x) := stdOrthonormalBasis ℝ _ exact ∑ K : Fin p → Fin n, fiberInner g r s x (evalFirst p (fun i => e (K i)) ξ) (P (prependCovectors p (fun i => g.inner x (e (K i))) η))",
+    "file": "ShortTime/Setting/Legendre.lean"
+  },
+  "ShortTime.localDom": {
+    "sha": "9c75a74b8e205c8a",
+    "statement": "def localDom (r s N : ℕ) (T₀ : ℝ) (dom : ℝ → (x : M) → Set (CovJetFiber I r s N x)) (x₀ : M) : Set (ℝ × M × JetModel E r s N) := {q | q ∈ localSlab (I := I) r s N T₀ x₀ ∧ jetOfModel r s N x₀ q.2.1 q.2.2 ∈ dom q.1 q.2.1}",
+    "file": "ShortTime/Setting/Equation.lean"
+  },
+  "ShortTime.localRep": {
+    "sha": "bcfb77eb33f09c15",
+    "statement": "def localRep (r s N : ℕ) (F : ℝ → (x : M) → CovJetFiber I r s N x → TensorRSSpace r s I x) (x₀ : M) : ℝ × M × JetModel E r s N → TensorRSModel r s ℝ E := fun q => (trivAt I M r s x₀).continuousLinearMapAt ℝ q.2.1 (F q.1 q.2.1 (jetOfModel r s N x₀ q.2.1 q.2.2)) variable (I M) in",
+    "file": "ShortTime/Setting/Equation.lean"
+  },
+  "ShortTime.localSlab": {
+    "sha": "5d24e2ca23124530",
+    "statement": "def localSlab (r s N : ℕ) (T₀ : ℝ) (x₀ : M) : Set (ℝ × M × JetModel E r s N) := {q | q.1 ∈ Icc 0 T₀ ∧ q.2.1 ∈ jetBase (I := I) r s N x₀}",
+    "file": "ShortTime/Setting/Equation.lean"
+  },
+  "ShortTime.prependCovectors": {
+    "sha": "c333b1d380b353c7",
+    "statement": "def prependCovectors {r t : ℕ} {x : M} : ∀ p : ℕ, (Fin p → (TangentSpace I x →L[ℝ] ℝ)) → TensorRSSpace r t I x → TensorRSSpace r (t + p) I x | 0, _, η => η | p + 1, θ, η => covGradBundleEquiv (I := I) (M := M) r (t + p) x ((θ 0).smulRight (prependCovectors p (Fin.tail θ) η))",
+    "file": "ShortTime/Setting/Legendre.lean"
+  },
+  "ShortTime.solution_continuous_dependence": {
+    "sha": "4c653166a9c6744b",
+    "statement": "theorem solution_continuous_dependence (D : EquationData I M r s p) (hp : 1 ≤ p) (g : SmoothRiemannianMetric I M) {u₀ : SmoothCcTensor g r s} {T : ℝ} {u : ℝ → SmoothCcTensor g r s} (hu : D.IsParabolicSolution g u₀ T u) (a : ℕ → SmoothCcTensor g r s) (ha : ∀ j : ℕ, ∀ ε > 0, ∀ᶠ n in atTop, ∀ x : M, fiberNorm g r (s + j) x ((iteratedCovGrad g r s j (a n - u₀)).toSection x) ≤ ε) : ∃ w : ℕ → ℝ → SmoothCcTensor g r s, (∀ᶠ n in atTop, D.IsParabolicSolution g (a n) T (w n)) ∧ ∀ j : ℕ, ∀ ε > 0, ∀ᶠ n in atTop, ∀ t ∈ Icc (0 : ℝ) T, ∀ x : M, fiberNorm g r (s + j) x ((iteratedCovGrad g r s j (w n t - u t)).toSection x) ≤ ε",
+    "file": "ShortTime/MainTheorems.lean"
+  },
+  "ShortTime.solution_unique": {
+    "sha": "96d1635a0bae39fd",
+    "statement": "theorem solution_unique (D : EquationData I M r s p) (hp : 1 ≤ p) (g : SmoothRiemannianMetric I M) {u₀ : SmoothCcTensor g r s} {T : ℝ} {u v : ℝ → SmoothCcTensor g r s} (hu : D.IsParabolicSolution g u₀ T u) (hv : D.IsParabolicSolution g u₀ T v) : ∀ t ∈ Icc (0 : ℝ) T, u t = v t",
+    "file": "ShortTime/MainTheorems.lean"
+  },
+  "ShortTime.trivAt": {
+    "sha": "ad0f480c5ca86c45",
+    "statement": "abbrev trivAt (r s : ℕ) (x₀ : M) := trivializationAt (TensorRSModel r s ℝ E) (fun x : M => TensorRSSpace r s I x) x₀",
+    "file": "ShortTime/Setting/Equation.lean"
+  }
+}

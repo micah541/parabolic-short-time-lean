@@ -1,0 +1,22 @@
+# Lean / Lake
+/.lake/
+
+# LaTeX build products (the compiled paper/main.pdf is committed on purpose)
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.bbl
+*.blg
+
+# Third-party reference PDFs kept locally, not redistributed
+/283-Article*.pdf
+/references/
+
+# Editors / OS
+.vscode/
+.DS_Store
+Thumbs.db
